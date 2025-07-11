@@ -7,7 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gin-project/models"
+	"personal_site/models"
 )
 
 var DB *gorm.DB

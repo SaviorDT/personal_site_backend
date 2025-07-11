@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"time"
 	"gorm.io/gorm"
 )
 
@@ -42,7 +41,7 @@ func (a AuthProvider) IsValid() bool {
 }
 
 type User struct {
-	Model      Model        `gorm:"embedded;"` // ID, CreatedAt, UpdatedAt
+	gorm.Model        `gorm:"embedded"` // ID, CreatedAt, UpdatedAt
 	Nickname   string       `gorm:"size:64;not null"`
 	Role       Role         `gorm:"size:32;not null"`
 	Provider   AuthProvider `gorm:"size:16;not null"`

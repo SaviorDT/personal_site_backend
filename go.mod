@@ -1,4 +1,4 @@
-module gin-project
+module personal_site
 
 go 1.24.4
 

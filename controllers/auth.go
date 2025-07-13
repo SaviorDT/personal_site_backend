@@ -5,6 +5,7 @@ import (
     "golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"personal_site/models"
+	"personal_site/schemas"
 )
 
 type registerRequest struct {
@@ -27,10 +28,9 @@ type loginResponse struct {
 	RefreshToken string `json:"refresh_token,omitempty"` // 可選的刷新 token
 }
 
-type tokenPayload struct {
-	UserID uint   `json:"user_id"`
-	Role   string `json:"role"`
-	Nickname string `json:"nickname"`
+type changePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required,min=8"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
 }
 
 func Register(c *gin.Context, db *gorm.DB) {
@@ -80,7 +80,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 	}
 
 	// login successful
-	token, err := GenerateToken(tokenPayload{
+	token, err := GenerateToken(schemas.TokenPayload{
 		UserID:   user.ID,
 		Role:     string(user.Role),
 		Nickname: user.Nickname,
@@ -110,4 +110,55 @@ func hashPassword(password string) (string, error) {
 func checkPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+func ChangePassword(c *gin.Context, db *gorm.DB) {
+	var req changePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, exists := c.Get("user")
+
+	if !exists {
+		c.JSON(401, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	tokenUser, ok := user.(schemas.TokenUser)
+	if !ok {
+		c.JSON(401, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var dbUser models.User
+	if err := db.First(&dbUser, tokenUser.ID).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to find user"})
+		return
+	}
+
+	if dbUser.Provider != models.AuthProviderPassword {
+		c.JSON(403, gin.H{"error": "Password change only allowed for password-based accounts"})
+		return
+	}
+
+	if !checkPasswordHash(req.OldPassword, dbUser.Identifier) {
+		c.JSON(401, gin.H{"error": "Old password is incorrect"})
+		return
+	}
+
+	newHashedPassword, err := hashPassword(req.NewPassword)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to hash new password"})
+		return
+	}
+
+	dbUser.Identifier = newHashedPassword
+	if err := db.Save(&dbUser).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to update password"})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "Password changed successfully"})
 }

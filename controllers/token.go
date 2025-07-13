@@ -5,23 +5,27 @@ import (
 	"github.com/joho/godotenv"
 	"os"
 	"fmt"
-	"time"
+
+	"personal_site/schemas"
 )
 
 var secretKey string
 
-func GenerateToken(payload interface{}, id uint) (string, error) {
-	now := time.Now()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iss": "deeelol_personal_site",
-		"exp": jwt.NewNumericDate(now.Add(time.Hour * 24 * 30)),
-		"iat": jwt.NewNumericDate(now),
-		"nbf": jwt.NewNumericDate(now),
-		"aud": "deeelol_personal_site",
-		"sub": id,
-		"user": payload,
-    })
-    // Replace "secret" with your secret key
+func GenerateToken(payload schemas.TokenPayload, id uint) (string, error) {
+	// now := time.Now()
+	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, TokenClaims{
+	// 	Iss: "deeelol_personal_site",
+	// 	Exp: *jwt.NewNumericDate(now.Add(time.Hour * 12)),
+	// 	Iat: *jwt.NewNumericDate(now),
+	// 	Nbf: *jwt.NewNumericDate(now),
+	// 	Aud: "deeelol_personal_site",
+	// 	Sub: id,
+	// 	Payload: payload,
+    // })
+	claims := schemas.NewTokenClaims(id)
+	claims.Payload = payload
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	key, err := getSecretKey()
 	if err != nil {
@@ -43,4 +47,28 @@ func getSecretKey() ([]byte, error) {
 		}
 	}
 	return []byte(secretKey), nil
+}
+
+func ValidateToken(tokenString string) (*jwt.Token, error) {
+	key, err := getSecretKey()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secret key: %v", err)
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString, &schemas.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return key, nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse token: %v", err)
+	}
+
+	if !token.Valid {
+		return nil, fmt.Errorf("token is invalid")
+	}
+
+	return token, nil
 }

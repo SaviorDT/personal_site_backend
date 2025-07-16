@@ -25,11 +25,11 @@ func AuthRequired() gin.HandlerFunc {
 		}
 
 		claims, ok := validToken.Claims.(*schemas.TokenClaims)
-        if !ok {
-            c.JSON(401, gin.H{"error": "Invalid token claims"})
-            c.Abort()
-            return
-        }
+		if !ok {
+			c.JSON(401, gin.H{"error": "Invalid token claims"})
+			c.Abort()
+			return
+		}
 
 		user := (&claims.Payload).ExtractUser()
 

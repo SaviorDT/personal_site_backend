@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
-    "golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"personal_site/models"
 	"personal_site/schemas"
@@ -20,11 +20,11 @@ type loginRequest struct {
 }
 
 type loginResponse struct {
-	UserID uint   `json:"user_id"`
-	Message string `json:"message"`
-	Role string `json:"role"`
-	Nickname string `json:"nickname"`
-	Token string `json:"token"`
+	UserID       uint   `json:"user_id"`
+	Message      string `json:"message"`
+	Role         string `json:"role"`
+	Nickname     string `json:"nickname"`
+	Token        string `json:"token"`
 	RefreshToken string `json:"refresh_token,omitempty"` // 可選的刷新 token
 }
 
@@ -40,11 +40,11 @@ func Register(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-    hashedPassword, err := hashPassword(req.Password)
-    if err != nil {
-        c.JSON(500, gin.H{"error": "unable to hash password"})
-        return
-    }
+	hashedPassword, err := hashPassword(req.Password)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "unable to hash password"})
+		return
+	}
 
 	user := models.User{
 		Nickname:   req.Nickname,
@@ -58,7 +58,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 		c.JSON(500, gin.H{"error": "Failed to create user"})
 		return
 	}
-	c.JSON(201, gin.H{"message": "User registered successfully", "user_id": user.ID})
+	c.JSON(200, gin.H{"message": "User registered successfully", "user_id": user.ID})
 }
 
 func Login(c *gin.Context, db *gorm.DB) {
@@ -71,7 +71,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 	// Attempt to login
 	var user models.User
 	err1 := db.Select("ID", "Role", "Nickname", "Identifier").Where("email = ?", req.Email).First(&user).Error // Cannot find user
-	err2 := bcrypt.CompareHashAndPassword([]byte(user.Identifier), []byte(req.Password)) // Password mismatch
+	err2 := bcrypt.CompareHashAndPassword([]byte(user.Identifier), []byte(req.Password))                       // Password mismatch
 
 	// Login failed
 	if err1 != nil || err2 != nil {
@@ -94,8 +94,8 @@ func Login(c *gin.Context, db *gorm.DB) {
 		UserID:   user.ID,
 		Message:  "Login successful",
 		Role:     string(user.Role),
-		Nickname: user.Nickname,	
-		Token: token, // Replace with actual token generation logic
+		Nickname: user.Nickname,
+		Token:    token, // Replace with actual token generation logic
 	})
 }
 

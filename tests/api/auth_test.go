@@ -1,0 +1,140 @@
+package api
+
+import (
+	"encoding/json"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+	"net/http"
+	"net/http/httptest"
+	"personal_site/controllers"
+	"personal_site/database"
+	"personal_site/models"
+	"personal_site/routers"
+	"personal_site/schemas"
+	"strings"
+	"testing"
+)
+
+var router *gin.Engine
+var db *gorm.DB
+
+func setup(t *testing.T) {
+	t.Setenv("DATABASE_DSN", ":memory:")
+	t.Setenv("JWT_SECRET_KEY", "testsecretkey")
+
+	var err error
+	db, err = database.InitDB()
+	if err != nil {
+		panic(err)
+	}
+
+	router = gin.Default()
+	routers.RegisterRouters(router, db)
+}
+
+func TestAuth(t *testing.T) {
+	t.Run("Register", func(t *testing.T) {
+		setup(t)
+		w_reg := httptest.NewRecorder()
+		req_reg, _ := http.NewRequest(http.MethodPost, "/auth/register",
+			strings.NewReader(`{
+				"email":"test-register@example.com", 
+				"password":"password123",
+				"nickname":"testuser"
+			}`))
+
+		router.ServeHTTP(w_reg, req_reg)
+
+		assert.Equal(t, 200, w_reg.Code)
+
+		// Check if user is created
+		var user models.User
+		err := db.First(&user, "email =  ?", "test-register@example.com").Error
+		assert.NoError(t, err, "User should be created")
+		assert.Equal(t, "testuser", user.Nickname, "User nickname should match")
+		assert.Equal(t, models.RoleUser, user.Role, "User role should be 'user'")
+		assert.Equal(t, models.AuthProviderPassword, user.Provider, "User provider should be 'password'")
+		err2 := bcrypt.CompareHashAndPassword([]byte(user.Identifier), []byte("password123"))
+		assert.NoError(t, err2, "User password should match")
+	})
+
+	t.Run("Login", func(t *testing.T) {
+		setup(t)
+
+		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+		db.Create(&models.User{
+			Nickname:   "testuser",
+			Role:       models.RoleUser,
+			Provider:   models.AuthProviderPassword,
+			Email:      "test-login@example.com",
+			Identifier: string(hashedPassword),
+		})
+
+		w_login := httptest.NewRecorder()
+		req_login, _ := http.NewRequest(http.MethodPost, "/auth/login",
+			strings.NewReader(`{
+				"email":"test-login@example.com", 
+				"password":"password123"
+			}`))
+
+		router.ServeHTTP(w_login, req_login)
+
+		assert.Equal(t, 200, w_login.Code)
+
+		// Check response data
+		loginBodyBytes := w_login.Body.Bytes()
+		var data map[string]interface{}
+		json.Unmarshal(loginBodyBytes, &data)
+		assert.Equal(t, 1.0, data["user_id"], "User ID should be 1")
+		assert.Equal(t, "user", data["role"], "Role should be 'user'")
+		assert.Equal(t, "testuser", data["nickname"], "Nickname should match")
+
+		token := data["token"].(string)
+		_, err := controllers.ValidateToken(token)
+		assert.NoError(t, err, "Token should be valid")
+	})
+
+	t.Run("Change Password", func(t *testing.T) {
+		setup(t)
+
+		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+		db.Create(&models.User{
+			Nickname:   "testuser",
+			Role:       models.RoleUser,
+			Provider:   models.AuthProviderPassword,
+			Email:      "test-change-password@example.com",
+			Identifier: string(hashedPassword),
+		})
+
+		fakeToken, _ := controllers.GenerateToken(schemas.TokenPayload{
+			UserID:   1,
+			Role:     "user",
+			Nickname: "testuser",
+		}, 1)
+
+		w_change := httptest.NewRecorder()
+		req_change, _ := http.NewRequest(http.MethodPost, "/auth/change-password",
+			strings.NewReader(`{
+				"old_password":"password123",
+				"new_password":"newpassword123"
+			}`))
+
+		req_change.Header.Set("Authorization", "Bearer "+fakeToken)
+
+		router.ServeHTTP(w_change, req_change)
+
+		assert.Equal(t, 200, w_change.Code)
+
+		// Check if the password was changed successfully
+		var user models.User
+		err := db.First(&user, "email =  ?", "test-change-password@example.com").Error
+		assert.NoError(t, err, "User should be created")
+		assert.Equal(t, "testuser", user.Nickname, "User nickname should match")
+		assert.Equal(t, models.RoleUser, user.Role, "User role should be 'user'")
+		assert.Equal(t, models.AuthProviderPassword, user.Provider, "User provider should be 'password'")
+		err2 := bcrypt.CompareHashAndPassword([]byte(user.Identifier), []byte("newpassword123"))
+		assert.NoError(t, err2, "User password should match")
+	})
+}

@@ -3,12 +3,18 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 
+	"personal_site/config"
 	"personal_site/database"
 	"personal_site/routers"
 )
 
 func main() {
-	var db, err = database.InitDB()
+	err := config.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	db, err := database.InitDB()
 	if err != nil {
 		panic(err)
 	}

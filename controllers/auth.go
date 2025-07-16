@@ -95,7 +95,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 		Message:  "Login successful",
 		Role:     string(user.Role),
 		Nickname: user.Nickname,
-		Token:    token, // Replace with actual token generation logic
+		Token:    token,
 	})
 }
 

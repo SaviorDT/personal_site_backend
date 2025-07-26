@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
 	"os"
+	"time"
+
+	"github.com/joho/godotenv"
 )
 
 var variableCache = make(map[string]string)
@@ -36,4 +38,16 @@ func GetVariableAsByteArr(varName string) ([]byte, error) {
 		return nil, err
 	}
 	return []byte(value), nil
+}
+
+func GetVariableAsTimeDuration(varName string) (time.Duration, error) {
+	value, err := GetVariableAsString(varName)
+	if err != nil {
+		return 0, err
+	}
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("Error parsing %s as duration: %v", varName, err)
+	}
+	return duration, nil
 }

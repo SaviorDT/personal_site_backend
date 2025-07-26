@@ -1,15 +1,15 @@
 package integration
 
 import (
-	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"personal_site/database"
 	"personal_site/routers"
 	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 )
 
 var router *gin.Engine
@@ -17,6 +17,7 @@ var router *gin.Engine
 func setup(t *testing.T) {
 	t.Setenv("DATABASE_DSN", ":memory:")
 	t.Setenv("JWT_SECRET_KEY", "testsecretkey")
+	t.Setenv("DEFAULT_TOKEN_EXPIRATION", "12h")
 
 	db, err := database.InitDB()
 	if err != nil {
@@ -56,10 +57,17 @@ func TestAuth(t *testing.T) {
 
 		assert.Equal(t, 200, w_login.Code)
 
-		loginBodyBytes := w_login.Body.Bytes()
-		var data map[string]interface{}
-		json.Unmarshal(loginBodyBytes, &data)
-		assert.NotEmpty(t, data["token"], "Token should not be empty")
+		// Check that auth_token cookie is set
+		cookies := w_login.Result().Cookies()
+		var authCookie *http.Cookie
+		for _, cookie := range cookies {
+			if cookie.Name == "auth_token" {
+				authCookie = cookie
+				break
+			}
+		}
+		assert.NotNil(t, authCookie, "auth_token cookie should be set")
+		assert.NotEmpty(t, authCookie.Value, "Token should not be empty")
 
 		// Validate token by change password
 		w_change := httptest.NewRecorder()
@@ -68,7 +76,8 @@ func TestAuth(t *testing.T) {
 				"old_password":"password123",
 				"new_password":"newpassword123"
 			}`))
-		req_change.Header.Set("Authorization", "Bearer "+data["token"].(string))
+		// Set the auth_token cookie instead of Authorization header
+		req_change.AddCookie(authCookie)
 
 		router.ServeHTTP(w_change, req_change)
 

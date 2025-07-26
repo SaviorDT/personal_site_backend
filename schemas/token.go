@@ -1,10 +1,12 @@
 package schemas
 
 import (
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
+	"personal_site/config"
 	"strconv"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type TokenClaims struct {
@@ -34,12 +36,16 @@ func NewTokenClaims[T interface{ ~string | ~uint }](sub T) *TokenClaims {
 	}
 
 	now := time.Now()
+	exp, err := config.GetVariableAsTimeDuration("DEFAULT_TOKEN_EXPIRATION")
+	if err != nil {
+		exp = 12 * time.Hour // Default to 12 hours if not set
+	}
 	return &TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "https://後端.夢.台灣",
 			Subject:   subject,
 			Audience:  []string{"https://夢.台灣", "https://後端.夢.台灣"},
-			ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour * 12)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(exp)),
 			NotBefore: jwt.NewNumericDate(now),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ID:        randomString(16),

@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"personal_site/config"
+	"personal_site/models"
+	"personal_site/schemas"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"personal_site/models"
-	"personal_site/schemas"
 )
 
 type registerRequest struct {
@@ -20,12 +22,12 @@ type loginRequest struct {
 }
 
 type loginResponse struct {
-	UserID       uint   `json:"user_id"`
-	Message      string `json:"message"`
-	Role         string `json:"role"`
-	Nickname     string `json:"nickname"`
-	Token        string `json:"token"`
-	RefreshToken string `json:"refresh_token,omitempty"` // 可選的刷新 token
+	UserID   uint   `json:"user_id"`
+	Message  string `json:"message"`
+	Role     string `json:"role"`
+	Nickname string `json:"nickname"`
+	// Token        string `json:"token"`
+	// RefreshToken string `json:"refresh_token,omitempty"` // 可選的刷新 token
 }
 
 type changePasswordRequest struct {
@@ -90,12 +92,27 @@ func Login(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
+	exp, err := config.GetVariableAsTimeDuration("DEFAULT_TOKEN_EXPIRATION")
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to get token expiration duration", "details": err.Error()})
+		return
+	}
+
+	c.SetCookie(
+		"auth_token",       // cookie name
+		token,              // cookie value
+		int(exp.Seconds()), // max age in seconds
+		"/",                // path
+		"",                 // domain (empty means current domain)
+		true,               // secure (set to true in production with HTTPS)
+		true,               // httpOnly
+	)
+
 	c.JSON(200, loginResponse{
 		UserID:   user.ID,
 		Message:  "Login successful",
 		Role:     string(user.Role),
 		Nickname: user.Nickname,
-		Token:    token,
 	})
 }
 

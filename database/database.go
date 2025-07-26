@@ -3,14 +3,18 @@ package database
 import (
 	"fmt"
 
+	"personal_site/config"
+	"personal_site/models"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"personal_site/config"
-	"personal_site/models"
 )
 
 func initMySQLDB(dsn string) (*gorm.DB, error) {
+	if len(dsn) >= 8 && dsn[:8] == "mysql://" {
+		dsn = dsn[8:] // Remove "mysql://" prefix if present
+	}
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to MySQL database: %v", err)

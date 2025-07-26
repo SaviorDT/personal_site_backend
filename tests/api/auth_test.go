@@ -2,10 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"net/http"
 	"net/http/httptest"
 	"personal_site/controllers"
@@ -15,6 +11,11 @@ import (
 	"personal_site/schemas"
 	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 var router *gin.Engine
@@ -23,6 +24,7 @@ var db *gorm.DB
 func setup(t *testing.T) {
 	t.Setenv("DATABASE_DSN", ":memory:")
 	t.Setenv("JWT_SECRET_KEY", "testsecretkey")
+	t.Setenv("DEFAULT_TOKEN_EXPIRATION", "12h")
 
 	var err error
 	db, err = database.InitDB()
@@ -85,15 +87,23 @@ func TestAuth(t *testing.T) {
 
 		// Check response data
 		loginBodyBytes := w_login.Body.Bytes()
-		var data map[string]interface{}
+		var data map[string]any
 		json.Unmarshal(loginBodyBytes, &data)
 		assert.Equal(t, 1.0, data["user_id"], "User ID should be 1")
 		assert.Equal(t, "user", data["role"], "Role should be 'user'")
 		assert.Equal(t, "testuser", data["nickname"], "Nickname should match")
 
-		token := data["token"].(string)
-		_, err := controllers.ValidateToken(token)
-		assert.NoError(t, err, "Token should be valid")
+		// Check that auth_token cookie is set
+		cookies := w_login.Result().Cookies()
+		var authCookie *http.Cookie
+		for _, cookie := range cookies {
+			if cookie.Name == "auth_token" {
+				authCookie = cookie
+				break
+			}
+		}
+		assert.NotNil(t, authCookie, "auth_token cookie should be set")
+		assert.NotEmpty(t, authCookie.Value, "Token should not be empty")
 	})
 
 	t.Run("Change Password", func(t *testing.T) {
@@ -121,7 +131,10 @@ func TestAuth(t *testing.T) {
 				"new_password":"newpassword123"
 			}`))
 
-		req_change.Header.Set("Authorization", "Bearer "+fakeToken)
+		req_change.AddCookie(&http.Cookie{
+			Name:  "auth_token",
+			Value: fakeToken,
+		})
 
 		router.ServeHTTP(w_change, req_change)
 

@@ -161,7 +161,7 @@ func ChangePassword(c *gin.Context, db *gorm.DB) {
 	}
 
 	if !checkPasswordHash(req.OldPassword, dbUser.Identifier) {
-		c.JSON(401, gin.H{"error": "Old password is incorrect"})
+		c.JSON(403, gin.H{"error": "Old password is incorrect"})
 		return
 	}
 

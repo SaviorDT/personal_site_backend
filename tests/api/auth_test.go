@@ -150,4 +150,42 @@ func TestAuth(t *testing.T) {
 		err2 := bcrypt.CompareHashAndPassword([]byte(user.Identifier), []byte("newpassword123"))
 		assert.NoError(t, err2, "User password should match")
 	})
+
+	t.Run("logout", func(t *testing.T) {
+		setup(t)
+
+		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+		db.Create(&models.User{
+			Nickname:   "testuser",
+			Role:       models.RoleUser,
+			Provider:   models.AuthProviderPassword,
+			Email:      "test-change-password@example.com",
+			Identifier: string(hashedPassword),
+		})
+
+		fakeToken, _ := controllers.GenerateToken(schemas.TokenPayload{
+			UserID:   1,
+			Role:     "user",
+			Nickname: "testuser",
+		}, 1)
+
+		w_logout := httptest.NewRecorder()
+		req_logout, _ := http.NewRequest(http.MethodPost, "/auth/logout", nil)
+		req_logout.AddCookie(&http.Cookie{
+			Name:  "auth_token",
+			Value: fakeToken,
+		})
+
+		router.ServeHTTP(w_logout, req_logout)
+
+		assert.Equal(t, 200, w_logout.Code)
+
+		// Check if the user is logged out
+		cookies := w_logout.Result().Cookies()
+		for _, cookie := range cookies {
+			if cookie.Name == "auth_token" {
+				assert.True(t, cookie.MaxAge == -1, "auth_token cookie should be cleared after logout")
+			}
+		}
+	})
 }

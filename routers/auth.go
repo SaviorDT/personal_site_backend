@@ -19,6 +19,10 @@ func (a auth) RegisterRouters(r *gin.RouterGroup, db *gorm.DB) {
 		controllers.Login(c, db)
 	})
 
+	r.POST("/logout", func(c *gin.Context) {
+		controllers.Logout(c)
+	})
+
 	r.POST("/change-password", middlewares.AuthRequired(), func(c *gin.Context) {
 		controllers.ChangePassword(c, db)
 	})

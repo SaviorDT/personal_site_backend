@@ -116,6 +116,21 @@ func Login(c *gin.Context, db *gorm.DB) {
 	})
 }
 
+func Logout(c *gin.Context) {
+	// 清除 auth_token cookie
+	c.SetCookie(
+		"auth_token", // cookie name
+		"",           // empty value
+		-1,           // max age -1 (delete immediately)
+		"/",          // path
+		"",           // domain (empty means current domain)
+		true,         // secure (set to true in production with HTTPS)
+		true,         // httpOnly
+	)
+
+	c.JSON(200, gin.H{"message": "Logged out successfully"})
+}
+
 func hashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {

@@ -44,7 +44,7 @@
 ---
 
 ### POST /auth/login
-**Description**: Login with email and password
+**Description**: Login with email and password. Session will save in http only cookie.
 
 **Request Body**:
 ```json
@@ -65,7 +65,6 @@
   "message": "Login successful",
   "role": "user",
   "nickname": "username",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -74,7 +73,6 @@
 - `message` (string): Success message
 - `role` (string): User's role (e.g., "user", "admin")
 - `nickname` (string): User's display name
-- `token` (string): JWT token for authentication
 
 **Error Responses**:
 - `400 Bad Request`: Invalid input data
@@ -98,13 +96,28 @@
 
 ---
 
-### POST /auth/change-password
-**Description**: Change user's password (requires authentication)
+### POST /auth/logout
+**Description**: Logout user and clear authentication cookie
 
-**Headers**:
+**Success Response (200)**:
+```json
+{
+  "message": "Logged out successfully"
+}
 ```
-Authorization: Bearer <token>
-```
+
+**Error Responses**:
+- `500 Internal Server Error`: Server error during logout
+  ```json
+  {
+    "error": "Failed to logout"
+  }
+  ```
+
+---
+
+### POST /auth/change-password
+**Description**: Change user's password (requires login first)
 
 **Request Body**:
 ```json
@@ -161,8 +174,8 @@ Authorization: Bearer <token>
 ## Authentication Flow
 
 1. **Register**: Create a new account using `/auth/register`
-2. **Login**: Authenticate using `/auth/login` to receive a JWT token
-3. **Access Protected Resources**: Include the token in the `Authorization` header as `Bearer <token>`
+2. **Login**: Authenticate using `/auth/login` and you don't need to manage any thing about session
+3. **Access Protected Resources**: token will saved in http only cookie
 4. **Change Password**: Use `/auth/change-password` with valid authentication
 
 ## Error Handling
@@ -178,6 +191,4 @@ All endpoints return appropriate HTTP status codes:
 
 - All passwords must be at least 8 characters long
 - Email addresses must be in valid email format
-- JWT tokens are used for authentication
-- The `/auth/change-password` endpoint requires a valid JWT token in the Authorization header
 - Password changes are only allowed for accounts created with email/password (not OAuth accounts)

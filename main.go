@@ -29,9 +29,28 @@ func main() {
 	allowedOrigins, _ := config.GetVariableAsString("CORS_ALLOWED_ORIGINS")
 
 	corsConfig := cors.Config{
-		AllowMethods:     []string{"*"},
-		AllowHeaders:     []string{"*"},
-		ExposeHeaders:    []string{"*"},
+		AllowMethods: []string{
+			"GET",
+			"POST",
+			"PUT",
+			"PATCH",
+			"DELETE",
+			"HEAD",
+			"OPTIONS",
+		},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Length",
+			"Content-Type",
+			"Authorization",
+			"Accept",
+			"X-Requested-With",
+			"Cache-Control",
+		},
+		ExposeHeaders: []string{
+			"Content-Length",
+			"Content-Type",
+		},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}

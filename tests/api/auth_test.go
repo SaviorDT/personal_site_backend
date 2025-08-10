@@ -5,36 +5,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"personal_site/controllers"
-	"personal_site/database"
 	"personal_site/models"
-	"personal_site/routers"
 	"personal_site/schemas"
 	"strings"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
-
-var router *gin.Engine
-var db *gorm.DB
-
-func setup(t *testing.T) {
-	t.Setenv("DATABASE_DSN", ":memory:")
-	t.Setenv("JWT_SECRET_KEY", "testsecretkey")
-	t.Setenv("DEFAULT_TOKEN_EXPIRATION", "12h")
-
-	var err error
-	db, err = database.InitDB()
-	if err != nil {
-		panic(err)
-	}
-
-	router = gin.Default()
-	routers.RegisterRouters(router, db)
-}
 
 func TestAuth(t *testing.T) {
 	t.Run("Register", func(t *testing.T) {

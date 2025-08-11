@@ -42,10 +42,16 @@ func AuthRequired() gin.HandlerFunc {
 func AuthOptional() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := c.Cookie("auth_token")
+
 		if err != nil || token == "" {
 			// No authentication, continue without setting user
-			c.JSON(401, gin.H{"error": "Authorization cookie is requireda"})
-			c.Abort()
+			anymousUser := schemas.TokenUser{
+				ID:       0,
+				Nickname: "anymous",
+				Role:     "anymous",
+			}
+
+			c.Set("user", anymousUser)
 			c.Next()
 			return
 		}
@@ -53,18 +59,16 @@ func AuthOptional() gin.HandlerFunc {
 		validToken, err := controllers.ValidateToken(token)
 		if err != nil || !validToken.Valid {
 			// Invalid token, continue without setting user
-			c.JSON(401, gin.H{"error": "Authorization cookie is requiredb"})
+			c.JSON(401, gin.H{"error": "Invalid or expired token", "details": err.Error()})
 			c.Abort()
-			c.Next()
 			return
 		}
 
 		claims, ok := validToken.Claims.(*schemas.TokenClaims)
 		if !ok {
 			// Invalid claims, continue without setting user
-			c.JSON(401, gin.H{"error": "Authorization cookie is requiredc"})
+			c.JSON(401, gin.H{"error": "Invalid token claims"})
 			c.Abort()
-			c.Next()
 			return
 		}
 

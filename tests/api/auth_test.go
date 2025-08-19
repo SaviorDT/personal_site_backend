@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"personal_site/controllers"
+	authController "personal_site/controllers/auth"
 	"personal_site/models"
 	"personal_site/schemas"
 	"strings"
@@ -96,7 +96,7 @@ func TestAuth(t *testing.T) {
 			Identifier: string(hashedPassword),
 		})
 
-		fakeToken, _ := controllers.GenerateToken(schemas.TokenPayload{
+		fakeToken, _ := authController.GenerateToken(schemas.TokenPayload{
 			UserID:   1,
 			Role:     "user",
 			Nickname: "testuser",
@@ -141,7 +141,7 @@ func TestAuth(t *testing.T) {
 			Identifier: string(hashedPassword),
 		})
 
-		fakeToken, _ := controllers.GenerateToken(schemas.TokenPayload{
+		fakeToken, _ := authController.GenerateToken(schemas.TokenPayload{
 			UserID:   1,
 			Role:     "user",
 			Nickname: "testuser",

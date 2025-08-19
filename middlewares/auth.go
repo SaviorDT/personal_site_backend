@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"personal_site/controllers"
+	authController "personal_site/controllers/auth"
 
 	"github.com/gin-gonic/gin"
 
@@ -17,7 +17,7 @@ func AuthRequired() gin.HandlerFunc {
 			return
 		}
 
-		validToken, err := controllers.ValidateToken(token)
+		validToken, err := authController.ValidateToken(token)
 		if err != nil || !validToken.Valid {
 			c.JSON(401, gin.H{"error": "Invalid or expired token", "details": err.Error()})
 			c.Abort()
@@ -56,7 +56,7 @@ func AuthOptional() gin.HandlerFunc {
 			return
 		}
 
-		validToken, err := controllers.ValidateToken(token)
+		validToken, err := authController.ValidateToken(token)
 		if err != nil || !validToken.Valid {
 			// Invalid token, continue without setting user
 			c.JSON(401, gin.H{"error": "Invalid or expired token", "details": err.Error()})

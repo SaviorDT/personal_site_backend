@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"personal_site/controllers"
+	authController "personal_site/controllers/auth"
 	"personal_site/models"
 	"personal_site/schemas"
 	"testing"
@@ -46,7 +46,7 @@ func TestGetYTDataAPIToken(t *testing.T) {
 		assert.Equal(t, "test user", history.Q1, "Q1 should match")
 		assert.Equal(t, "Savior_DT", history.Q2, "Q2 should match")
 		assert.Equal(t, "test", history.Q3, "Q3 should match")
-		assert.Nil(t, history.UserID, "UserID should be nil for unauthenticated request")
+		assert.Equal(t, uint(0), *history.UserID, "UserID should be nil for unauthenticated request")
 	})
 
 	t.Run("Get YT Data API Token with invalid Q2", func(t *testing.T) {
@@ -80,7 +80,7 @@ func TestGetYTDataAPIToken(t *testing.T) {
 		assert.Equal(t, "test user", history.Q1, "Q1 should match")
 		assert.Equal(t, "invalid_answer", history.Q2, "Q2 should match")
 		assert.Equal(t, "test", history.Q3, "Q3 should match")
-		assert.Nil(t, history.UserID, "UserID should be nil for unauthenticated request")
+		assert.Equal(t, uint(0), *history.UserID, "UserID should be nil for unauthenticated request")
 	})
 
 	t.Run("Get YT Data API Token with authenticated user", func(t *testing.T) {
@@ -98,7 +98,7 @@ func TestGetYTDataAPIToken(t *testing.T) {
 		db.Create(&testUser)
 
 		// Generate token for the test user
-		fakeToken, _ := controllers.GenerateToken(schemas.TokenPayload{
+		fakeToken, _ := authController.GenerateToken(schemas.TokenPayload{
 			UserID:   testUser.ID,
 			Role:     string(testUser.Role),
 			Nickname: testUser.Nickname,
@@ -162,6 +162,6 @@ func TestGetYTDataAPIToken(t *testing.T) {
 		assert.Equal(t, "test user", history.Q1, "Q1 should match")
 		assert.Equal(t, "Savior_DT", history.Q2, "Q2 should match")
 		assert.Equal(t, "test", history.Q3, "Q3 should match")
-		assert.Nil(t, history.UserID, "UserID should be nil for unauthenticated request")
+		assert.Equal(t, uint(0), *history.UserID, "UserID should be nil for unauthenticated request")
 	})
 }

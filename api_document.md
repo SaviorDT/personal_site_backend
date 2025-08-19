@@ -44,7 +44,7 @@
 ---
 
 ### POST /auth/login
-**Description**: Login with email and password. Session will save in http only cookie.
+**Description**: Login with email and password. Sets an `auth_token` HTTP-only cookie for the session.
 
 **Request Body**:
 ```json
@@ -97,7 +97,7 @@
 ---
 
 ### POST /auth/logout
-**Description**: Logout user and clear authentication cookie
+**Description**: Logout user and clear authentication cookie. Removes the `auth_token` cookie.
 
 **Success Response (200)**:
 ```json
@@ -169,14 +169,97 @@
   }
   ```
 
+### GET /auth/login-github
+Description: Start GitHub OAuth login flow. Optionally accept a `redirect` query param to indicate where the browser should be redirected after a successful login.
+
+Query Parameters:
+- `redirect` (string, optional): A full URL to redirect to on success. This value is preserved via OAuth state and used in the callback.
+
+Response:
+- 302 Redirect to GitHub authorization URL
+
+Notes:
+- The server encodes a nonce and the `redirect` value into the OAuth `state` parameter.
+
+### GET /auth/login-github-callback
+Description: OAuth callback endpoint for GitHub. Exchanges the authorization code for a token, creates or finds the user, sets the `auth_token` HTTP-only cookie, and then redirects back to the provided `redirect` URL if present. If no `redirect` is provided, returns JSON.
+
+Reads:
+- `state` (from GitHub): contains an encoded object with fields `n` (nonce) and `r` (redirect URL).
+- `redirect` (optional query): used only if not present in state.
+
+On success with redirect present:
+- 302 Redirect to the `redirect` URL with the following query parameters appended:
+  - `login=success`
+  - `user_id` (number)
+  - `message` (string): "GitHub login successful"
+  - `role` (string)
+  - `nickname` (string)
+
+On success without redirect:
+- 200 JSON:
+```json
+{
+  "message": "GitHub login successful",
+  "user_id": 1,
+  "role": "user",
+  "nickname": "username"
+}
+```
+
+Error Responses:
+- `400 Bad Request`: Missing `code`
+- `401 Unauthorized`: Code exchange failed
+- `500 Internal Server Error`: OAuth not configured, DB or token errors
+
+---
+
+### GET /auth/login-google
+Description: Start Google OAuth login flow. Optionally accept a `redirect` query param to indicate where the browser should be redirected after a successful login.
+
+Query Parameters:
+- `redirect` (string, optional): A full URL to redirect to on success. This value is preserved via OAuth state and used in the callback.
+
+Response:
+- 302 Redirect to Google authorization URL
+
+Notes:
+- The server encodes a nonce and the `redirect` value into the OAuth `state` parameter.
+
+### GET /auth/login-google-callback
+Description: OAuth callback endpoint for Google. Exchanges the authorization code, creates or finds the user, sets the `auth_token` HTTP-only cookie, and then redirects back to the provided `redirect` URL if present. If no `redirect` is provided, returns JSON.
+
+Reads:
+- `state` (from Google): contains an encoded object with fields `n` (nonce) and `r` (redirect URL).
+- `redirect` (optional query): used only if not present in state.
+
+On success with redirect present:
+- 302 Redirect to the `redirect` URL with the following query parameters appended:
+  - `login=success`
+  - `user_id` (number)
+  - `message` (string): "Google login successful"
+  - `role` (string)
+  - `nickname` (string)
+
+On success without redirect:
+- 200 JSON similar to GitHub callback.
+
+Error Responses:
+- `400 Bad Request`: Missing `code`
+- `401 Unauthorized`: Code exchange failed
+- `500 Internal Server Error`: OAuth not configured, DB or token errors
+
 ---
 
 ## Authentication Flow
 
-1. **Register**: Create a new account using `/auth/register`
-2. **Login**: Authenticate using `/auth/login` and you don't need to manage any thing about session
+1. **Register**: Create a new account using `/auth/register`. Or you don't need to do that if you use OAuth.
+2. **Login**: Authenticate using `/auth/login` and you don't need to manage any thing about session. Or use `/auth/login-{3rd-platform}` to use OAuth login.
 3. **Access Protected Resources**: token will saved in http only cookie
 4. **Change Password**: Use `/auth/change-password` with valid authentication
+
+---
+
 
 ## Error Handling
 

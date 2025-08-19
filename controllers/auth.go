@@ -1,6 +1,10 @@
 package controllers
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"strings"
+
 	"personal_site/config"
 	"personal_site/models"
 	"personal_site/schemas"
@@ -193,4 +197,24 @@ func ChangePassword(c *gin.Context, db *gorm.DB) {
 	}
 
 	c.JSON(200, gin.H{"message": "Password changed successfully"})
+}
+
+// ================= Helpers used by multiple providers =================
+
+func fallbackNickname(parts ...string) string {
+	for _, p := range parts {
+		if strings.TrimSpace(p) != "" {
+			return p
+		}
+	}
+	return "github_user"
+}
+
+// randomState simple random (reuse existing randomString)
+func randomState() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "state"
+	}
+	return base64.RawURLEncoding.EncodeToString(b)
 }

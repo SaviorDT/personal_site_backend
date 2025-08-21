@@ -1,7 +1,8 @@
-package controllers
+package auth
 
 import (
 	"fmt"
+
 	"github.com/golang-jwt/jwt/v5"
 
 	"personal_site/config"

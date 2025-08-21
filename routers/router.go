@@ -9,12 +9,12 @@ import (
 )
 
 type Router interface {
-	RegisterRouters(r *gin.RouterGroup, db *gorm.DB)
+	RegisterRoutes(r *gin.RouterGroup, db *gorm.DB)
 }
 
 func RegisterRouters(r *gin.Engine, db *gorm.DB) {
-	var authRouter Router = auth{}
-	authRouter.RegisterRouters(r.Group("/auth"), db)
+	var authRouterVal Router = authRouter{}
+	authRouterVal.RegisterRoutes(r.Group("/auth"), db)
 
 	r.GET("/get-yt-data-api-token", middlewares.AuthOptional(), func(c *gin.Context) {
 		controllers.GetYTDataAPIToken(c, db)

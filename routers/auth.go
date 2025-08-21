@@ -9,9 +9,9 @@ import (
 	"personal_site/middlewares"
 )
 
-type auth struct{}
+type authRouter struct{}
 
-func (a auth) RegisterRouters(r *gin.RouterGroup, db *gorm.DB) {
+func (a authRouter) RegisterRoutes(r *gin.RouterGroup, db *gorm.DB) {
 	r.POST("/register", func(c *gin.Context) {
 		authController.Register(c, db)
 	})

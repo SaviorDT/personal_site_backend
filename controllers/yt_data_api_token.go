@@ -3,8 +3,8 @@ package controllers
 import (
 	"net/http"
 	"personal_site/config"
+	"personal_site/controllers/utils"
 	"personal_site/models"
-	"personal_site/schemas"
 	"slices"
 
 	"github.com/gin-gonic/gin"
@@ -44,18 +44,13 @@ func GetYTDataAPIToken(c *gin.Context, db *gorm.DB) {
 	}
 
 	// Get user information if logged in
-	var userID *uint
-	if user, exists := c.Get("user"); exists {
-		if userInfo, ok := user.(schemas.TokenUser); ok {
-			userID = &userInfo.ID
-		}
-	}
+	userID := utils.GetUserID(c)
 
 	history := models.YTDataAPITokenHistory{
 		Q1:     q1,
 		Q2:     q2,
 		Q3:     q3,
-		UserID: userID,
+		UserID: &userID,
 	}
 
 	if err := db.Create(&history).Error; err != nil {

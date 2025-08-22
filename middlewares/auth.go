@@ -45,13 +45,13 @@ func AuthOptional() gin.HandlerFunc {
 
 		if err != nil || token == "" {
 			// No authentication, continue without setting user
-			anymousUser := schemas.TokenUser{
+			anonymousUser := schemas.TokenUser{
 				ID:       0,
-				Nickname: "anymous",
-				Role:     "anymous",
+				Nickname: "anonymous",
+				Role:     "anonymous",
 			}
 
-			c.Set("user", anymousUser)
+			c.Set("user", anonymousUser)
 			c.Next()
 			return
 		}

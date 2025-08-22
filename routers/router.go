@@ -16,6 +16,9 @@ func RegisterRouters(r *gin.Engine, db *gorm.DB) {
 	var authRouterVal Router = authRouter{}
 	authRouterVal.RegisterRoutes(r.Group("/auth"), db)
 
+	var storageRouterVal Router = storageRouter{}
+	storageRouterVal.RegisterRoutes(r.Group("/storage"), db)
+
 	r.GET("/get-yt-data-api-token", middlewares.AuthOptional(), func(c *gin.Context) {
 		controllers.GetYTDataAPIToken(c, db)
 	})

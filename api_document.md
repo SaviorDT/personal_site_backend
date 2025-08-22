@@ -260,6 +260,181 @@ Error Responses:
 
 ---
 
+## Storage APIs
+**Description**:
+```
+An user who has logged in has full access permission for 2 storages. One is private and the other is shared with everyone.
+
+An user who has not logged in has only full access permission for the public one.
+
+An admin can access all the storages.
+
+Don't upload any thing you don't want to share whit admins here. Admins could see all your files.
+```
+
+### POST /storage/folder/*folder_path
+**Description**: Create a new folder in the storage system
+
+**Path Parameters**:
+- `folder_path` (string, required): The folder path to create (supports nested paths, e.g., `/documents/2024/reports`)
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+
+**Success Response (200)**:
+```json
+{
+  "message": "Directory created successfully"
+}
+```
+
+**Error Responses**:
+- `500 Internal Server Error`: Failed to create directory
+  ```json
+  {
+    "error": "Failed to create directory"
+  }
+  ```
+
+**Example**:
+```bash
+POST /storage/folder/documents/2024/reports
+```
+
+---
+
+### GET /storage/folder/*folder_path
+**Description**: List contents of a folder
+
+**Path Parameters**:
+- `folder_path` (string, required): The folder path to list (supports nested paths, e.g., `/documents/2024`)
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+
+**Success Response (200)**:
+```json
+[
+    {
+        "is_dir": true,
+        "name": "test",
+        "size": 4096
+    },
+    {
+        "is_dir": false,
+        "name": "test.txt",
+        "size": 3
+    }
+]
+```
+
+**Response Schema**:
+  - `name` (string): File or folder name
+  - `is_dir` (bool): Whether it is a folder
+  - `size` (number): File or folder size in bytes
+
+**Error Responses**:
+- `500 Internal Server Error`: Failed to list folder contents
+  ```json
+  {
+    "error": "Failed to list folder contents"
+  }
+  ```
+
+**Example**:
+```bash
+GET /storage/folder/documents/2024
+```
+
+---
+
+### PATCH /storage/folder/*folder_path
+**Description**: Update a folder
+
+**Path Parameters**:
+- `folder_path` (string, required): The current folder path to update
+
+**Request Body**:
+```json
+{
+  "name": "new folder name"
+}
+```
+
+**Request Body Schema**:
+- `name` (string, optional): The new folder name, not the full path.
+
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+
+**Success Response (200)**:
+```json
+{
+  "message": "Folder updated successfully"
+}
+```
+
+**Error Responses**:
+- `500 Internal Server Error`: Failed to update folder
+  ```json
+  {
+    "error": "Failed to update folder"
+  }
+  ```
+- `500 Internal Server Error`: Failed to rename folder
+  ```json
+  {
+    "error": "Failed to rename folder"
+  }
+  ```
+
+**Example**:
+```bash
+PATCH /storage/folder/documents/old_name
+```
+
+---
+
+### DELETE /storage/folder/*folder_path
+**Description**: Delete a folder and all its contents
+
+**Path Parameters**:
+- `folder_path` (string, required): The folder path to delete
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+
+**Success Response (200)**:
+```json
+{
+  "message": "Folder deleted successfully"
+}
+```
+
+**Error Responses**:
+- `500 Internal Server Error`: Failed to delete folder
+  ```json
+  {
+    "error": "Failed to delete folder"
+  }
+  ```
+
+**Example**:
+```bash
+DELETE /storage/folder/documents/temp
+```
+
+---
+
+## Storage Notes
+
+- All folder paths support nested directory structures
+- Authentication is optional for storage operations.
+- User have their own storage if they logged in and they share a storage with all users whether they logged in or not.
+- Folder names are case-sensitive
+- The capacity of each storage is 10 GB.
+- The `*folder_name` path parameter captures the entire path after `/folder/`
 
 ## Error Handling
 

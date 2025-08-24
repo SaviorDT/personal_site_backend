@@ -2,6 +2,8 @@ package storage
 
 import (
 	"fmt"
+	"io"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 	"personal_site/controllers/utils"
@@ -80,10 +82,50 @@ func rmdir(folderPath string) error {
 	return os.RemoveAll(folderPath)
 }
 
-func convertToDefaultStoragePath(folderPath string, c *gin.Context) (string, error) {
+func remove(filePath string) error {
+	// 刪除檔案
+	return os.Remove(filePath)
+}
+
+func writeMultipartFile(filePath string, file multipart.File) error {
+	out, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, file)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func convertToTmpDataPath(path string, c *gin.Context) (string, error) {
+	userID := utils.GetUserID(c)
+	tmpDataPath := filepath.Join("data", fmt.Sprintf("%d", userID), "tmp", path)
+	storageRoot, err := getStorageRoot()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(storageRoot, tmpDataPath), nil
+}
+
+func convertToMetadataPath(path string, c *gin.Context) (string, error) {
+	userID := utils.GetUserID(c)
+	metadataPath := filepath.Join("data", fmt.Sprintf("%d", userID), "metadata", path)
+	storageRoot, err := getStorageRoot()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(storageRoot, metadataPath), nil
+}
+
+func convertToStoragePath(path string, c *gin.Context) (string, error) {
 	userID := utils.GetUserID(c)
 	userNickname := utils.GetUserNickname(c)
-	storagePath := filepath.Join("data", fmt.Sprintf("%d", userID), userNickname, folderPath)
+	storagePath := filepath.Join("data", fmt.Sprintf("%d", userID), userNickname, path)
 	storageRoot, err := getStorageRoot()
 	if err != nil {
 		return "", err

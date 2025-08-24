@@ -1,17 +1,15 @@
 package storage
 
 import (
-	"path/filepath"
-
 	"github.com/gin-gonic/gin"
 )
 
 type updateFolderRequest struct {
-	Name string `json:"name"`
+	Path string `json:"path"`
 }
 
 func CreateFolder(c *gin.Context) {
-	folderPath, err := convertToDefaultStoragePath(c.Param("folder_name"), c)
+	folderPath, err := convertToStoragePath(c.Param("folder_path"), c)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to create directory"})
 		return
@@ -27,7 +25,7 @@ func CreateFolder(c *gin.Context) {
 }
 
 func ListFolder(c *gin.Context) {
-	folderPath, err := convertToDefaultStoragePath(c.Param("folder_name"), c)
+	folderPath, err := convertToStoragePath(c.Param("folder_path"), c)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to list folder contents"})
 		return
@@ -43,7 +41,7 @@ func ListFolder(c *gin.Context) {
 }
 
 func UpdateFolder(c *gin.Context) {
-	folderPath, err := convertToDefaultStoragePath(c.Param("folder_name"), c)
+	folderPath, err := convertToStoragePath(c.Param("folder_path"), c)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to update folder"})
 		return
@@ -55,11 +53,16 @@ func UpdateFolder(c *gin.Context) {
 		return
 	}
 
-	newFolderName := updateReq.Name
-	if newFolderName != "" {
-		err := renameFolder(folderPath, newFolderName)
+	newFolderPath := updateReq.Path
+	if newFolderPath != "" {
+		newFolderPath, err = convertToStoragePath(newFolderPath, c)
 		if err != nil {
-			c.JSON(500, gin.H{"error": "Failed to rename folder"})
+			c.JSON(400, gin.H{"error": "Invalid new folder path"})
+			return
+		}
+		err := move(folderPath, newFolderPath)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to move folder"})
 			return
 		}
 	}
@@ -68,7 +71,7 @@ func UpdateFolder(c *gin.Context) {
 }
 
 func DeleteFolder(c *gin.Context) {
-	folderPath, err := convertToDefaultStoragePath(c.Param("folder_name"), c)
+	folderPath, err := convertToStoragePath(c.Param("folder_path"), c)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to delete folder"})
 		return
@@ -81,10 +84,4 @@ func DeleteFolder(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"message": "Folder deleted successfully"})
-}
-
-func renameFolder(oldFolderPath, newFolderName string) error {
-	newFolderPath := filepath.Join(filepath.Dir(oldFolderPath), newFolderName)
-
-	return move(oldFolderPath, newFolderPath)
 }

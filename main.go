@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -8,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"personal_site/config"
+	"personal_site/controllers/storage"
 	"personal_site/database"
 	"personal_site/routers"
 )
@@ -24,6 +27,8 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	startSetup()
 
 	// CORS 配置
 	allowedOrigins, _ := config.GetVariableAsString("CORS_ALLOWED_ORIGINS")
@@ -64,4 +69,14 @@ func main() {
 	routers.RegisterRouters(r, db)
 
 	r.Run(":80") // Start the server on port 8080
+}
+
+func startSetup() {
+	// 清理 tmp 目錄
+	tmpStoragePath, err := storage.GetStorageRoot()
+	if err != nil {
+		panic(err)
+	}
+	tmpStoragePath = filepath.Join(tmpStoragePath, "tmp")
+	os.RemoveAll(tmpStoragePath)
 }

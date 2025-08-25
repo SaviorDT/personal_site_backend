@@ -104,36 +104,36 @@ func writeMultipartFile(filePath string, file multipart.File) error {
 
 func convertToTmpDataPath(path string, c *gin.Context) (string, error) {
 	userID := utils.GetUserID(c)
-	tmpDataPath := filepath.Join("data", fmt.Sprintf("%d", userID), "tmp", path)
-	storageRoot, err := getStorageRoot()
+	tmpDataPath := filepath.Join("tmp", fmt.Sprintf("%d", userID), path)
+	storageRoot, err := GetStorageRoot()
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(storageRoot, tmpDataPath), nil
 }
 
-func convertToMetadataPath(path string, c *gin.Context) (string, error) {
-	userID := utils.GetUserID(c)
-	metadataPath := filepath.Join("data", fmt.Sprintf("%d", userID), "metadata", path)
-	storageRoot, err := getStorageRoot()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(storageRoot, metadataPath), nil
-}
+// func convertToMetadataPath(path string, c *gin.Context) (string, error) {
+// 	userID := utils.GetUserID(c)
+// 	metadataPath := filepath.Join("data", fmt.Sprintf("%d", userID), "metadata", path)
+// 	storageRoot, err := GetStorageRoot()
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	return filepath.Join(storageRoot, metadataPath), nil
+// }
 
 func convertToStoragePath(path string, c *gin.Context) (string, error) {
 	userID := utils.GetUserID(c)
 	userNickname := utils.GetUserNickname(c)
 	storagePath := filepath.Join("data", fmt.Sprintf("%d", userID), userNickname, path)
-	storageRoot, err := getStorageRoot()
+	storageRoot, err := GetStorageRoot()
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(storageRoot, storagePath), nil
 }
 
-func getStorageRoot() (string, error) {
+func GetStorageRoot() (string, error) {
 	// 獲取專案根目錄路徑
 	projectRoot, err := getProjectRoot()
 	if err != nil {

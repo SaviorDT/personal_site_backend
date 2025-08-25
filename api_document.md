@@ -263,11 +263,7 @@ Error Responses:
 ## Storage APIs
 **Description**:
 ```
-An user who has logged in has full access permission for 2 storages. One is private and the other is shared with everyone.
-
-An user who has not logged in has only full access permission for the public one.
-
-An admin can access all the storages.
+All users can access its own storage and users who have not logged in share a storage.
 
 Don't upload any thing you don't want to share whit admins here. Admins could see all your files.
 ```
@@ -650,7 +646,7 @@ DELETE /storage/file/documents/unwanted_file.txt
 
 - All folder and file paths support nested directory structures
 - Authentication is optional for storage operations.
-- User have their own storage if they logged in and they share a storage with all users whether they logged in or not.
+- User have their own storage if they logged in and they share a storage with other users if they did not log in.
 - Folder and file names are case-sensitive
 - The `*folder_path` and `*file_path` parameters capture the entire path after `/folder/` or `/file/`
 

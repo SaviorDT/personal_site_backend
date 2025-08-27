@@ -33,7 +33,7 @@ func ListFolder(c *gin.Context) {
 
 	folderContent, err := getFolderContent(folderPath)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to list folder contents"})
+		c.JSON(200, gin.H{})
 		return
 	}
 

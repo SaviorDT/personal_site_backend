@@ -3,7 +3,9 @@ package storage
 import (
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 	"personal_site/controllers/utils"
@@ -47,10 +49,35 @@ func getFolderContent(folderPath string) ([]map[string]any, error) {
 			size = 0
 		}
 
+		// 決定 MIME 類型
+		var mimeType string
+		if entry.IsDir() {
+			mimeType = "inode/directory"
+		} else {
+			// 先用副檔名判斷
+			mimeType = mime.TypeByExtension(filepath.Ext(entry.Name()))
+			if mimeType == "" {
+				// 再以內容嗅探
+				f, err := os.Open(filepath.Join(folderPath, entry.Name()))
+				if err == nil {
+					buf := make([]byte, 512)
+					n, _ := f.Read(buf)
+					_ = f.Close()
+					if n > 0 {
+						mimeType = http.DetectContentType(buf[:n])
+					}
+				}
+				if mimeType == "" {
+					mimeType = "application/octet-stream"
+				}
+			}
+		}
+
 		item := map[string]any{
 			"name":   entry.Name(),
 			"is_dir": entry.IsDir(),
 			"size":   size,
+			"mime":   mimeType,
 		}
 		folderContent = append(folderContent, item)
 	}

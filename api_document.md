@@ -260,6 +260,395 @@ Error Responses:
 
 ---
 
+## Storage APIs
+**Description**:
+```
+All users can access its own storage and users who have not logged in share a storage.
+
+Don't upload any thing you don't want to share whit admins here. Admins could see all your files.
+```
+
+### POST /storage/folder/*folder_path
+**Description**: Create a new folder in the storage system
+
+**Path Parameters**:
+- `folder_path` (string, required): The folder path to create (supports nested paths, e.g., `/documents/2024/reports`)
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+
+**Success Response (200)**:
+```json
+{
+  "message": "Directory created successfully"
+}
+```
+
+**Error Responses**:
+- `500 Internal Server Error`: Failed to create directory
+  ```json
+  {
+    "error": "Failed to create directory"
+  }
+  ```
+
+**Example**:
+```bash
+POST /storage/folder/documents/2024/reports
+```
+
+---
+
+### GET /storage/folder/*folder_path
+**Description**: List contents of a folder
+
+**Path Parameters**:
+- `folder_path` (string, required): The folder path to list (supports nested paths, e.g., `/documents/2024`)
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+
+**Success Response (200)**:
+```json
+[
+    {
+        "is_dir": true,
+        "name": "test",
+        "size": 4096
+    },
+    {
+        "is_dir": false,
+        "name": "test.txt",
+        "size": 3
+    }
+]
+```
+
+**Response Schema**:
+  - `name` (string): File or folder name
+  - `is_dir` (bool): Whether it is a folder
+  - `size` (number): File or folder size in bytes
+
+**Error Responses**:
+- `500 Internal Server Error`: Failed to list folder contents
+  ```json
+  {
+    "error": "Failed to list folder contents"
+  }
+  ```
+
+**Example**:
+```bash
+GET /storage/folder/documents/2024
+```
+
+---
+
+### PATCH /storage/folder/*folder_path
+**Description**: Update a folder
+
+**Path Parameters**:
+- `folder_path` (string, required): The current folder path to update
+
+**Request Body**:
+```json
+{
+  "path": "new folder path"
+}
+```
+
+**Request Body Schema**:
+- `path` (string, optional): The new folder path.
+
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+
+**Success Response (200)**:
+```json
+{
+  "message": "Folder updated successfully"
+}
+```
+
+**Error Responses**:
+- `500 Internal Server Error`: Failed to update folder
+  ```json
+  {
+    "error": "Failed to update folder"
+  }
+  ```
+- `500 Internal Server Error`: Failed to rename folder
+  ```json
+  {
+    "error": "Failed to move folder"
+  }
+  ```
+
+**Example**:
+```bash
+PATCH /storage/folder/documents/old_name
+```
+
+---
+
+### DELETE /storage/folder/*folder_path
+**Description**: Delete a folder and all its contents
+
+**Path Parameters**:
+- `folder_path` (string, required): The folder path to delete
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+
+**Success Response (200)**:
+```json
+{
+  "message": "Folder deleted successfully"
+}
+```
+
+**Error Responses**:
+- `500 Internal Server Error`: Failed to delete folder
+  ```json
+  {
+    "error": "Failed to delete folder"
+  }
+  ```
+
+**Example**:
+```bash
+DELETE /storage/folder/documents/temp
+```
+
+---
+
+### GET /storage/file/*file_path
+**Description**: Download/retrieve a file from storage
+
+**Path Parameters**:
+- `file_path` (string, required): The file path to retrieve (supports nested paths, e.g., `/documents/2024/report.pdf`)
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+
+**Success Response (200)**:
+- Returns the file content with appropriate Content-Type header
+- File is served directly for download or display
+
+**Error Responses**:
+- `400 Bad Request`: Invalid file path
+  ```json
+  {
+    "error": "Cannot get file"
+  }
+  ```
+- `404 Not Found`: File not found (served by web server)
+
+**Example**:
+```bash
+GET /storage/file/documents/2024/report.pdf
+```
+
+---
+
+### POST /storage/file/*file_path
+**Description**: Upload a file to storage with chunked upload support for large files
+
+**Path Parameters**:
+- `file_path` (string, required): The destination file path (supports nested paths, e.g., `/documents/2024/report.pdf`)
+
+**Form Data (multipart/form-data)**:
+- `file_id` (string, required): Unique identifier for the file (used for chunked uploads)
+- `chunk_index` (integer, required): Index of current chunk (0-based)
+- `total_chunks` (integer, required): Total number of chunks for this file
+- `chunk_data` (file, required): The file chunk data
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+- `Content-Type`: multipart/form-data
+
+**Success Response (200)**:
+For non-final chunks:
+```json
+{
+  "message": "Chunk uploaded successfully"
+}
+```
+
+For final chunk (file complete):
+```json
+{
+  "message": "File uploaded successfully"
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Invalid request parameters
+  ```json
+  {
+    "error": "Cannot upload file"
+  }
+  ```
+- `400 Bad Request`: Missing chunk data
+  ```json
+  {
+    "error": "Missing chunk_data"
+  }
+  ```
+- `500 Internal Server Error`: Upload failed
+  ```json
+  {
+    "error": "Failed to save file"
+  }
+  ```
+
+**Chunked Upload Process**:
+1. Split large files into chunks (recommended: 1-10MB per chunk)
+2. Upload each chunk with the same `file_id` and sequential `chunk_index`
+3. Server automatically merges chunks when the final chunk is received
+4. Temporary chunks are stored in `tmp/upload_chunks/{file_id}/` during upload
+
+**Example**:
+```bash
+# Upload chunk 0 of 3
+POST /storage/file/documents/large_video.mp4
+Content-Type: multipart/form-data
+
+file_id=unique_file_123
+chunk_index=0
+total_chunks=3
+chunk_data=<binary_chunk_0>
+
+# Upload chunk 1 of 3
+POST /storage/file/documents/large_video.mp4
+Content-Type: multipart/form-data
+
+file_id=unique_file_123
+chunk_index=1
+total_chunks=3
+chunk_data=<binary_chunk_1>
+
+# Upload final chunk 2 of 3 (triggers merge)
+POST /storage/file/documents/large_video.mp4
+Content-Type: multipart/form-data
+
+file_id=unique_file_123
+chunk_index=2
+total_chunks=3
+chunk_data=<binary_chunk_2>
+```
+
+---
+
+### PATCH /storage/file/*file_path
+**Description**: Update/move a file to a new location
+
+**Path Parameters**:
+- `file_path` (string, required): The current file path to update
+
+**Request Body**:
+```json
+{
+  "path": "/new/location/filename.ext"
+}
+```
+
+**Request Body Schema**:
+- `path` (string, optional): New file path (relative to storage root)
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+
+**Success Response (200)**:
+```json
+{
+  "message": "File updated successfully"
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Invalid request payload
+  ```json
+  {
+    "error": "Invalid request payload"
+  }
+  ```
+- `400 Bad Request`: Invalid new file path
+  ```json
+  {
+    "error": "Invalid new file path"
+  }
+  ```
+- `500 Internal Server Error`: Failed to update file
+  ```json
+  {
+    "error": "Failed to update file"
+  }
+  ```
+- `500 Internal Server Error`: Failed to move file
+  ```json
+  {
+    "error": "Failed to move file"
+  }
+  ```
+
+**Example**:
+```bash
+PATCH /storage/file/documents/old_name.txt
+Content-Type: application/json
+
+{
+  "path": "/documents/renamed_file.txt"
+}
+```
+
+---
+
+### DELETE /storage/file/*file_path
+**Description**: Delete a file from storage
+
+**Path Parameters**:
+- `file_path` (string, required): The file path to delete
+
+**Headers**:
+- `Cookie`: auth_token (optional) - Authentication cookie for user identification
+
+**Success Response (200)**:
+```json
+{
+  "message": "File deleted successfully"
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Invalid file path
+  ```json
+  {
+    "error": "Cannot delete file"
+  }
+  ```
+- `500 Internal Server Error`: Failed to delete file
+  ```json
+  {
+    "error": "Failed to delete file"
+  }
+  ```
+
+**Example**:
+```bash
+DELETE /storage/file/documents/unwanted_file.txt
+```
+
+---
+
+## Storage Notes
+
+- All folder and file paths support nested directory structures
+- Authentication is optional for storage operations.
+- User have their own storage if they logged in and they share a storage with other users if they did not log in.
+- Folder and file names are case-sensitive
+- The `*folder_path` and `*file_path` parameters capture the entire path after `/folder/` or `/file/`
 
 ## Error Handling
 

@@ -650,6 +650,60 @@ DELETE /storage/file/documents/unwanted_file.txt
 - Folder and file names are case-sensitive
 - The `*folder_path` and `*file_path` parameters capture the entire path after `/folder/` or `/file/`
 
+## Battle Cat APIs
+
+### GET /battle-cat/levels
+**Description**: Filter and list Battle Cat levels by stage and up to 3 enemies. Returns an array of level collections. Internally, results may include matches for 3-enemy, 2-enemy, and 1-enemy combinations.
+
+**Query Parameters**:
+- `stage` (string, required, max length 3): Stage identifier to filter on
+- `enemy` (string, required, repeated, max 3): Enemy names; pass 1 to 3 values
+  - Examples: `?enemy=dog&enemy=snake`
+
+**Success Response (200)**:
+Returns an array of collections. Each collection contains the requested enemies echo and a list of levels.
+```json
+[
+  {
+    "enemies": ["enemyA", "enemyB", "enemyC"],
+    "levels": [
+      { "level": "001", "name": "Stage 1", "hp": 1200, "enemies": "enemyA, enemyX" },
+      { "level": "002", "name": "Stage 2", "hp": 1500, "enemies": "enemyB, enemyY" }
+    ]
+  }
+]
+```
+
+**Response Schema**:
+- Array of objects with:
+  - `enemies` (string[]): The enemies from the query (echoed)
+  - `levels` (array): Matched levels for a particular enemy combination
+    - `level` (string): Level code/id
+    - `name` (string): Level name
+    - `hp` (number): Level HP
+    - `enemies` (string): Original enemies string from DB for that level
+
+**Error Responses**:
+- `401 Unauthorized`: Invalid query parameters (binding/validation failed)
+  ```json
+  { "error": "Key: 'FilterLevelsRequest.Enemies' Error:Field validation for 'Enemies' failed on the 'max' tag" }
+  ```
+
+**Examples**:
+```bash
+# Single enemy
+GET /battle-cat/levels?stage=E01&enemy=dog
+
+# Two enemies (repeat the query parameter)
+GET /battle-cat/levels?stage=E01&enemy=dog&enemy=snake
+
+# Three enemies
+GET /battle-cat/levels?stage=E01&enemy=dog&enemy=snake&enemy=boss
+```
+
+Notes:
+- The endpoint may return multiple collections representing matches for three-enemy, pairwise, and single-enemy filters.
+
 ## Error Handling
 
 All endpoints return appropriate HTTP status codes:

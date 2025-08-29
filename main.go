@@ -57,7 +57,7 @@ func main() {
 			"Content-Type",
 		},
 		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
+		MaxAge:           30 * 24 * time.Hour,
 	}
 
 	if allowedOrigins != "" {

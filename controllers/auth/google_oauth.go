@@ -95,7 +95,7 @@ func GoogleLoginCallback(c *gin.Context, db *gorm.DB) {
 
 	user, err := ensureUserFromOAuth(db, models.AuthProviderGoogle, gu.Sub, email, gu.Name)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Database error", "details": err.Error()})
+		c.JSON(500, gin.H{"error": "Database error", "details": err.Error(), "user": gu})
 		return
 	}
 

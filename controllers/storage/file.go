@@ -95,16 +95,17 @@ func saveFile(c *gin.Context) error {
 
 	file, _, err := c.Request.FormFile("chunk_data")
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Missing chunk_data"})
 		return err
 	}
 	defer file.Close()
 
 	// 暫存目錄
-	tmpDir := filepath.Join("tmp", "upload_chunks", fileID)
+	tmpDir, err := convertToTmpDataPath(fileID, c)
+	if err != nil {
+		return err
+	}
 	err = mkDirIfNotExists(tmpDir)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to create temp dir"})
 		return err
 	}
 
@@ -119,6 +120,10 @@ func saveFile(c *gin.Context) error {
 		}
 	} else {
 		filePath, err := convertToStoragePath(c.Param("file_path"), c)
+		if err != nil {
+			return err
+		}
+		err = mkDirIfNotExists(filepath.Dir(filePath))
 		if err != nil {
 			return err
 		}

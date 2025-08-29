@@ -45,9 +45,9 @@ type User struct {
 	gorm.Model `gorm:"embedded"` // ID, CreatedAt, UpdatedAt
 	Nickname   string            `gorm:"size:64;not null"`
 	Role       Role              `gorm:"size:32;not null"`
-	Provider   AuthProvider      `gorm:"size:16;not null"`
-	Email      string            `gorm:"size:128;not null;unique"`
-	Identifier string            `gorm:"size:256"` // hashed password, or provider id
+	Provider   AuthProvider      `gorm:"size:16;not null;index:,unique,composite:uni_provider_email"`
+	Email      string            `gorm:"size:128;not null;index:,unique,composite:uni_provider_email"`
+	Identifier string            `gorm:"size:256;not null;index"` // hashed password, or provider id
 }
 
 func (u *User) BeforeSave(tx *gorm.DB) (err error) {

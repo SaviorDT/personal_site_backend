@@ -23,7 +23,11 @@ func main() {
 
 	db, err := database.InitDB()
 	if err != nil {
-		panic(err)
+		time.Sleep(5 * time.Second)
+		db, err = database.InitDB()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	r := gin.Default()

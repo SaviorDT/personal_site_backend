@@ -109,12 +109,8 @@ func GitHubLoginCallback(c *gin.Context, db *gorm.DB) {
 		c.JSON(500, gin.H{"error": "Failed to generate token", "details": err.Error()})
 		return
 	}
-	exp, err := config.GetVariableAsTimeDuration("DEFAULT_TOKEN_EXPIRATION")
-	if err != nil {
-		exp = 12 * time.Hour
-	}
 
-	setAuthCookieForRedirect(c, jwtToken, exp, redirectBack)
+	setAuthCookie(c, jwtToken)
 	finalizeLoginResponse(c, redirectBack, user, "GitHub login successful")
 }
 

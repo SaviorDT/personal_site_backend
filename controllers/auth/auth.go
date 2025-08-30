@@ -96,21 +96,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	exp, err := config.GetVariableAsTimeDuration("DEFAULT_TOKEN_EXPIRATION")
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to get token expiration duration", "details": err.Error()})
-		return
-	}
-
-	c.SetCookie(
-		"auth_token",       // cookie name
-		token,              // cookie value
-		int(exp.Seconds()), // max age in seconds
-		"/",                // path
-		"",                 // domain (empty means current domain)
-		true,               // secure (set to true in production with HTTPS)
-		true,               // httpOnly
-	)
+	setAuthCookie(c, token)
 
 	c.JSON(200, loginResponse{
 		UserID:   user.ID,
@@ -122,15 +108,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 
 func Logout(c *gin.Context) {
 	// 清除 auth_token cookie
-	c.SetCookie(
-		"auth_token", // cookie name
-		"",           // empty value
-		-1,           // max age -1 (delete immediately)
-		"/",          // path
-		"",           // domain (empty means current domain)
-		true,         // secure (set to true in production with HTTPS)
-		true,         // httpOnly
-	)
+	removeAuthCookie(c)
 
 	c.JSON(200, gin.H{"message": "Logged out successfully"})
 }
@@ -217,4 +195,34 @@ func randomState() string {
 		return "state"
 	}
 	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func setAuthCookie(c *gin.Context, token string) {
+	exp, err := config.GetVariableAsTimeDuration("DEFAULT_TOKEN_EXPIRATION")
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to get token expiration duration", "details": err.Error()})
+		return
+	}
+
+	c.SetCookie(
+		"auth_token",       // cookie name
+		token,              // cookie value
+		int(exp.Seconds()), // max age in seconds
+		"/",                // path
+		"",                 // domain (empty means current domain)
+		true,               // secure (set to true in production with HTTPS)
+		true,               // httpOnly
+	)
+}
+
+func removeAuthCookie(c *gin.Context) {
+	c.SetCookie(
+		"auth_token", // cookie name
+		"",           // empty value
+		-1,           // max age -1 (delete immediately)
+		"/",          // path
+		"",           // domain (empty means current domain)
+		true,         // secure (set to true in production with HTTPS)
+		true,         // httpOnly
+	)
 }

@@ -6,13 +6,11 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"personal_site/config"
 	"personal_site/models"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/net/publicsuffix"
 	"gorm.io/gorm"
 )
 
@@ -47,23 +45,6 @@ func decodeOAuthStateRedirect(raw string) string {
 		}
 	}
 	return ""
-}
-
-// setAuthCookieForRedirect sets the auth cookie for a domain derived from redirectBack (or COOKIE_DOMAIN override)
-func setAuthCookieForRedirect(c *gin.Context, token string, exp time.Duration, redirectBack string) {
-	// Allow override by config
-	cookieDomain := ""
-	if redirectBack != "" {
-		if u, err := url.Parse(redirectBack); err == nil {
-			rbHost := u.Hostname()
-			if baseRB, err1 := publicsuffix.EffectiveTLDPlusOne(rbHost); err1 == nil {
-				cookieDomain = baseRB
-			} else if strings.Contains(rbHost, ".") {
-				cookieDomain = rbHost
-			}
-		}
-	}
-	c.SetCookie("auth_token", token, int(exp.Seconds()), "/", cookieDomain, true, true)
 }
 
 // finalizeLoginResponse redirects back with user info in query, or returns JSON when no redirect

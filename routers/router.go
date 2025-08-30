@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"personal_site/config"
 	"personal_site/controllers"
 	"personal_site/middlewares"
 
@@ -13,14 +14,17 @@ type Router interface {
 }
 
 func RegisterRouters(r *gin.Engine, db *gorm.DB) {
+	apiPathPrefix, _ := config.GetVariableAsString("API_PATH_PREFIX")
+	mainRouter := r.Group(apiPathPrefix)
+
 	var authRouterVal Router = authRouter{}
-	authRouterVal.RegisterRoutes(r.Group("/auth"), db)
+	authRouterVal.RegisterRoutes(mainRouter.Group("/auth"), db)
 
 	var storageRouterVal Router = storageRouter{}
-	storageRouterVal.RegisterRoutes(r.Group("/storage"), db)
+	storageRouterVal.RegisterRoutes(mainRouter.Group("/storage"), db)
 
 	var battleCatRouterVal Router = battleCatRouter{}
-	battleCatRouterVal.RegisterRoutes(r.Group("/battle-cat"), db)
+	battleCatRouterVal.RegisterRoutes(mainRouter.Group("/battle-cat"), db)
 
 	r.GET("/get-yt-data-api-token", middlewares.AuthOptional(), func(c *gin.Context) {
 		controllers.GetYTDataAPIToken(c, db)

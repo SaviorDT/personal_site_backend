@@ -2,6 +2,7 @@ package battlecat
 
 import (
 	"personal_site/models"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -32,121 +33,58 @@ func FilterLevels(c *gin.Context, db *gorm.DB) {
 	}
 
 	var collections []levelCollection
-	stageDB := db.Where("stage = ?", req.Stage)
+	var allPossibleLevels []models.BattleCatLevel
+	db.Where("stage = ?", req.Stage).Find(&allPossibleLevels)
+
 	if len(req.Enemies) >= 3 {
-		permuteFindLevels3(req.Enemies, &collections, stageDB)
+		permuteFindLevels3(req.Enemies, &collections, allPossibleLevels)
 	}
 	if len(req.Enemies) >= 2 {
-		permuteFindLevels2(req.Enemies, &collections, stageDB)
+		permuteFindLevels2(req.Enemies, &collections, allPossibleLevels)
 	}
-	permuteFindLevels1(req.Enemies, &collections, stageDB)
+	permuteFindLevels1(req.Enemies, &collections, allPossibleLevels)
 
 	c.JSON(200, collections)
 }
 
-func permuteFindLevels1(enemies []string, collections *[]levelCollection, db *gorm.DB) {
-	var levels []models.BattleCatLevel
-
-	err := db.Where("INSTR(enemies, ?) > 0", enemies[0]).Find(&levels).Error
-	if err == nil {
+func permuteFindLevels1(enemies []string, collections *[]levelCollection, allPossibleLevels []models.BattleCatLevel) {
+	for _, enemy := range enemies {
 		var collection levelCollection
-		collection.Enemies = []string{enemies[0]}
+		collection.Enemies = []string{enemy}
 
-		for _, level := range levels {
-			collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
+		for _, level := range allPossibleLevels {
+			if strings.Contains(level.Enemies, enemy) {
+				collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
+			}
 		}
-
-		*collections = append(*collections, collection)
-	}
-
-	if len(enemies) < 2 {
-		return
-	}
-
-	err = db.Where("INSTR(enemies, ?) > 0", enemies[1]).Find(&levels).Error
-	if err == nil {
-		var collection levelCollection
-		collection.Enemies = []string{enemies[1]}
-
-		for _, level := range levels {
-			collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
-		}
-
-		*collections = append(*collections, collection)
-	}
-
-	if len(enemies) < 3 {
-		return
-	}
-
-	err = db.Where("INSTR(enemies, ?) > 0", enemies[2]).Find(&levels).Error
-	if err == nil {
-		var collection levelCollection
-		collection.Enemies = []string{enemies[2]}
-
-		for _, level := range levels {
-			collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
-		}
-
 		*collections = append(*collections, collection)
 	}
 }
 
-func permuteFindLevels2(enemies []string, collections *[]levelCollection, db *gorm.DB) {
-	var levels []models.BattleCatLevel
+func permuteFindLevels2(enemies []string, collections *[]levelCollection, allPossibleLevels []models.BattleCatLevel) {
+	for i, enemy1 := range enemies {
+		for _, enemy2 := range enemies[i+1:] {
+			var collection levelCollection
+			collection.Enemies = []string{enemy1, enemy2}
 
-	err := db.Where("INSTR(enemies, ?) > 0 AND INSTR(enemies, ?) > 0", enemies[0], enemies[1]).Find(&levels).Error
-	if err == nil {
-		var collection levelCollection
-		collection.Enemies = []string{enemies[0], enemies[1]}
-		for _, level := range levels {
-			collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
+			for _, level := range allPossibleLevels {
+				if strings.Contains(level.Enemies, enemy1) && strings.Contains(level.Enemies, enemy2) {
+					collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
+				}
+			}
+			*collections = append(*collections, collection)
 		}
-
-		*collections = append(*collections, collection)
-	}
-
-	if len(enemies) < 3 {
-		return
-	}
-
-	err = db.Where("INSTR(enemies, ?) > 0 AND INSTR(enemies, ?) > 0", enemies[0], enemies[2]).Find(&levels).Error
-	if err == nil {
-		var collection levelCollection
-		collection.Enemies = []string{enemies[0], enemies[2]}
-
-		for _, level := range levels {
-			collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
-		}
-
-		*collections = append(*collections, collection)
-	}
-
-	err = db.Where("INSTR(enemies, ?) > 0 AND INSTR(enemies, ?) > 0", enemies[1], enemies[2]).Find(&levels).Error
-	if err == nil {
-		var collection levelCollection
-		collection.Enemies = []string{enemies[1], enemies[2]}
-
-		for _, level := range levels {
-			collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
-		}
-
-		*collections = append(*collections, collection)
 	}
 }
 
-func permuteFindLevels3(enemies []string, collections *[]levelCollection, db *gorm.DB) {
-	var levels []models.BattleCatLevel
+func permuteFindLevels3(enemies []string, collections *[]levelCollection, allPossibleLevels []models.BattleCatLevel) {
+	var collection levelCollection
+	collection.Enemies = enemies
 
-	err := db.Where("INSTR(enemies, ?) > 0 AND INSTR(enemies, ?) > 0 AND INSTR(enemies, ?)", enemies[0], enemies[1], enemies[2]).Find(&levels).Error
-	if err == nil {
-		var collection levelCollection
-		collection.Enemies = []string{enemies[0], enemies[1], enemies[2]}
-
-		for _, level := range levels {
+	for _, level := range allPossibleLevels {
+		if strings.Contains(level.Enemies, enemies[0]) && strings.Contains(level.Enemies, enemies[1]) && strings.Contains(level.Enemies, enemies[2]) {
 			collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
 		}
-
-		*collections = append(*collections, collection)
 	}
+	*collections = append(*collections, collection)
 }

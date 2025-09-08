@@ -2,6 +2,7 @@ package storage
 
 import (
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -46,7 +47,7 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"message": "File uploaded successfully"})
+	c.JSON(201, gin.H{"message": "File uploaded successfully"})
 }
 
 func UpdateFile(c *gin.Context) {
@@ -109,55 +110,55 @@ func saveFile(c *gin.Context) error {
 		return err
 	}
 
-	if chunkIndex+1 < totalChunks {
-		chunkPath, err := convertToTmpDataPath(filepath.Join(fileID, chunkIndexStr), c)
-		if err != nil {
-			return err
-		}
-		err = writeMultipartFile(chunkPath, file)
-		if err != nil {
-			return err
-		}
-	} else {
+	chunkPath := filepath.Join(tmpDir, chunkIndexStr)
+	err = writeMultipartFile(chunkPath, file)
+	if err != nil {
+		return err
+	}
+
+	if chunkIndex + 1 == totalChunks {
 		filePath, err := convertToStoragePath(c.Param("file_path"), c)
 		if err != nil {
 			return err
 		}
-		err = mkDirIfNotExists(filepath.Dir(filePath))
-		if err != nil {
+		if err := mkDirIfNotExists(filepath.Dir(filePath)); err != nil {
 			return err
 		}
 
-		finalOut, err := os.Create(filePath)
-		if err != nil {
-			return err
-		}
-		defer finalOut.Close()
+		// Merge in background to avoid blocking the request
+		go func(tmpDir, filePath string, totalChunks int) {
+			defer os.RemoveAll(tmpDir)
 
-		// 合併所有已儲存的 chunk（0 到 totalChunks-2）
-		for i := range totalChunks - 1 {
-			chunkFilePath, err := convertToTmpDataPath(filepath.Join(fileID, strconv.Itoa(i)), c)
+			finalOut, err := os.Create(filePath)
 			if err != nil {
-				return err
+				log.Println("merge create final file error:", err)
+				return
 			}
-			chunkFile, err := os.Open(chunkFilePath)
-			if err != nil {
-				return err
-			}
-			_, err = io.Copy(finalOut, chunkFile)
-			chunkFile.Close()
-			if err != nil {
-				return err
-			}
-		}
+			defer finalOut.Close()
 
-		// last chunk
-		_, err = io.Copy(finalOut, file)
-		if err != nil {
-			return err
-		}
+			// Merge all chunks 0..totalChunks-1
+			for i := 0; i < totalChunks; i++ {
+				chunkFilePath := filepath.Join(tmpDir, strconv.Itoa(i))
+				chunkFile, err := os.Open(chunkFilePath)
+				if err != nil {
+					log.Println("open chunk error:", err, "path:", chunkFilePath)
+					return
+				}
+				if _, err = io.Copy(finalOut, chunkFile); err != nil {
+					chunkFile.Close()
+					log.Println("copy chunk error:", err, "path:", chunkFilePath)
+					return
+				}
+				chunkFile.Close()
+			}
 
-		rmdir(tmpDir)
+			// Cleanup tmp dir
+			if err := os.RemoveAll(tmpDir); err != nil {
+				log.Println("cleanup tmp dir error:", err, "dir:", tmpDir)
+			}
+		}(tmpDir, filePath, totalChunks)
+
+		return nil
 	}
 
 	return nil

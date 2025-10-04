@@ -657,8 +657,9 @@ DELETE /storage/file/documents/unwanted_file.txt
 
 **Query Parameters**:
 - `stage` (string, required, max length 3): Stage identifier to filter on
-- `enemy` (string, required, repeated, max 3): Enemy names; pass 1 to 3 values
-  - Examples: `?enemy=dog&enemy=snake`
+- `enemy` (string, required, repeated, max 3): Enemy names; pass 1 to 3 values. Only give a part of the name is not functional.
+  - Examples: `?enemy=臭老兔&enemy=狗仔`
+  - Wrong: `?enemy=兔` (This will return no error but you can't find the levels with an enemy named "臭老兔")
 
 **Success Response (200)**:
 Returns an array of collections. Each collection contains the requested enemies echo and a list of levels.

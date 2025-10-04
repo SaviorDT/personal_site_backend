@@ -53,7 +53,7 @@ func permuteFindLevels1(enemies []string, collections *[]levelCollection, allPos
 		collection.Enemies = []string{enemy}
 
 		for _, level := range allPossibleLevels {
-			if strings.Contains(level.Enemies, enemy) {
+			if containsEnemy(level.Enemies, enemy) {
 				collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
 			}
 		}
@@ -68,7 +68,7 @@ func permuteFindLevels2(enemies []string, collections *[]levelCollection, allPos
 			collection.Enemies = []string{enemy1, enemy2}
 
 			for _, level := range allPossibleLevels {
-				if strings.Contains(level.Enemies, enemy1) && strings.Contains(level.Enemies, enemy2) {
+				if containsEnemy(level.Enemies, enemy1) && containsEnemy(level.Enemies, enemy2) {
 					collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
 				}
 			}
@@ -82,9 +82,19 @@ func permuteFindLevels3(enemies []string, collections *[]levelCollection, allPos
 	collection.Enemies = enemies
 
 	for _, level := range allPossibleLevels {
-		if strings.Contains(level.Enemies, enemies[0]) && strings.Contains(level.Enemies, enemies[1]) && strings.Contains(level.Enemies, enemies[2]) {
+		if containsEnemy(level.Enemies, enemies[0]) && containsEnemy(level.Enemies, enemies[1]) && containsEnemy(level.Enemies, enemies[2]) {
 			collection.Levels = append(collection.Levels, levelData{Level: level.Level, Name: level.Name, HP: level.HP, Enemies: level.Enemies})
 		}
 	}
 	*collections = append(*collections, collection)
+}
+
+func containsEnemy(enemies string, target string) bool {
+	enemyList := strings.Split(enemies, "、")
+	for _, enemy := range enemyList {
+		if enemy == target {
+			return true
+		}
+	}
+	return false
 }

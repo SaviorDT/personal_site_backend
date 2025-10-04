@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -10,27 +8,27 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"personal_site/config"
-	"personal_site/controllers/storage"
 	"personal_site/database"
 	"personal_site/routers"
+	"personal_site/tasks"
 )
 
 func main() {
+	// load env
 	err := config.Init()
 	if err != nil {
 		panic(err)
 	}
 
+	// connect database
 	db, err := database.InitDB()
 	if err != nil {
-		time.Sleep(5 * time.Second)
+		time.Sleep(30 * time.Second)
 		db, err = database.InitDB()
 		if err != nil {
 			panic(err)
 		}
 	}
-
-	r := gin.Default()
 
 	startSetup()
 
@@ -68,19 +66,39 @@ func main() {
 		corsConfig.AllowOrigins = strings.Split(allowedOrigins, ",")
 	}
 
-	r.Use(cors.New(corsConfig))
-
-	routers.RegisterRouters(r, db)
+	r := gin.Default()
+	r.Use(cors.New(corsConfig))    // cors
+	routers.RegisterRouters(r, db) // endpoints
 
 	r.Run(":80") // Start the server on port 8080
 }
 
 func startSetup() {
-	// 清理 tmp 目錄
-	tmpStoragePath, err := storage.GetStorageRoot()
+	// gin debug mode
+	ginmode, err := config.GetVariableAsString("GIN_MODE")
 	if err != nil {
-		panic(err)
+		gin.SetMode(gin.DebugMode)
+	} else if ginmode == "debug" {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
 	}
-	tmpStoragePath = filepath.Join(tmpStoragePath, "tmp")
-	os.RemoveAll(tmpStoragePath)
+
+	// 清理 storage tmp 目錄
+	tasks.ClearTmpStorage()
+	// tmpStoragePath, err := storage.GetStorageRoot()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// tmpStoragePath = filepath.Join(tmpStoragePath, "tmp")
+	// os.RemoveAll(tmpStoragePath)
+
+	// set timezone
+	if timezone, err := config.GetVariableAsString("TIMEZONE"); err == nil {
+		loc, err := time.LoadLocation(timezone)
+		if err != nil {
+			panic(err)
+		}
+		time.Local = loc
+	}
 }

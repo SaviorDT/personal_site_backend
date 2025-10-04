@@ -116,7 +116,7 @@ func saveFile(c *gin.Context) error {
 		return err
 	}
 
-	if chunkIndex + 1 == totalChunks {
+	if chunkIndex+1 == totalChunks {
 		filePath, err := convertToStoragePath(c.Param("file_path"), c)
 		if err != nil {
 			return err

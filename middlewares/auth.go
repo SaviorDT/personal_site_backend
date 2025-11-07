@@ -34,6 +34,8 @@ func AuthRequired() gin.HandlerFunc {
 		user := (&claims.Payload).ExtractUser()
 
 		c.Set("user", user)
+		c.Set("user_id", user.ID)
+		c.Set("role", user.Role)
 
 		c.Next()
 	}
@@ -74,6 +76,8 @@ func AuthOptional() gin.HandlerFunc {
 
 		user := (&claims.Payload).ExtractUser()
 		c.Set("user", user)
+		c.Set("user_id", user.ID)
+		c.Set("role", user.Role)
 
 		c.Next()
 	}

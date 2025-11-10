@@ -26,6 +26,9 @@ func RegisterRouters(r *gin.Engine, db *gorm.DB) {
 	var battleCatRouterVal Router = battleCatRouter{}
 	battleCatRouterVal.RegisterRoutes(mainRouter.Group("/battle-cat"), db)
 
+	var reurlRouterVal Router = reurlRouter{}
+	reurlRouterVal.RegisterRoutes(mainRouter.Group("/reurl"), db)
+
 	mainRouter.GET("/get-yt-data-api-token", middlewares.AuthOptional(), func(c *gin.Context) {
 		controllers.GetYTDataAPIToken(c, db)
 	})

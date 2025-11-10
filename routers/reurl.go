@@ -17,9 +17,15 @@ func (reurlRouter) RegisterRoutes(r *gin.RouterGroup, db *gorm.DB) {
     r.GET("/", middlewares.AuthRequired(), func(c *gin.Context) {
         reurlController.ListReurls(c, db)
     })
+    r.GET("", middlewares.AuthRequired(), func(c *gin.Context) {
+        reurlController.ListReurls(c, db)
+    })
 
     // Create a new mapping (protected)
     r.POST("/", middlewares.AuthRequired(), func(c *gin.Context) {
+        reurlController.CreateReurl(c, db)
+    })
+    r.POST("", middlewares.AuthRequired(), func(c *gin.Context) {
         reurlController.CreateReurl(c, db)
     })
 

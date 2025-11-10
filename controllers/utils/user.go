@@ -16,18 +16,11 @@ func GetUserID(c *gin.Context) uint {
 }
 
 func GetUserIDStrict(c *gin.Context) (uint, error) {
-	var userID *uint
-	if user, exists := c.Get("user"); exists {
-		if userInfo, ok := user.(schemas.TokenUser); ok {
-			userID = &userInfo.ID
-		}
+	tu, err := GetTokenUser(c)
+	if err != nil {
+		return 0, err
 	}
-
-	if userID == nil {
-		return 0, errors.New("user not authenticated")
-	}
-
-	return *userID, nil
+	return tu.ID, nil
 }
 
 func GetUserNickname(c *gin.Context) string {
@@ -39,16 +32,29 @@ func GetUserNickname(c *gin.Context) string {
 }
 
 func GetUserNicknameStrict(c *gin.Context) (string, error) {
-	var userNickname *string
+	tu, err := GetTokenUser(c)
+	if err != nil {
+		return "", err
+	}
+	return tu.Nickname, nil
+}
+
+// GetTokenUser returns the TokenUser stored in the context (set by auth middleware)
+func GetTokenUser(c *gin.Context) (schemas.TokenUser, error) {
 	if user, exists := c.Get("user"); exists {
 		if userInfo, ok := user.(schemas.TokenUser); ok {
-			userNickname = &userInfo.Nickname
+			return userInfo, nil
 		}
 	}
+	return schemas.TokenUser{}, errors.New("user not authenticated")
+}
 
-	if userNickname == nil {
-		return "", errors.New("user not authenticated")
+// IsAdminUser returns true when the current user has admin role.
+func IsAdminUser(c *gin.Context) bool {
+	if user, exists := c.Get("user"); exists {
+		if userInfo, ok := user.(schemas.TokenUser); ok {
+			return userInfo.Role == "admin"
+		}
 	}
-
-	return *userNickname, nil
+	return false
 }

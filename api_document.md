@@ -719,3 +719,302 @@ All endpoints return appropriate HTTP status codes:
 - All passwords must be at least 8 characters long
 - Email addresses must be in valid email format
 - Password changes are only allowed for accounts created with email/password (not OAuth accounts)
+
+---
+
+## Reurl APIs
+
+**Description**:
+The Reurl APIs allow users to create, manage, and use short URL redirects. Users can create short keys that redirect to target URLs with optional expiration times. Keys are automatically generated using a short base62 encoding. Regular users can only manage their own reurls, while admins can manage all reurls.
+
+### GET /reurl
+**Description**: List reurls owned by the authenticated user. Admins see all reurls.
+
+**Headers**:
+- `Cookie`: auth_token (required) - Authentication cookie
+
+**Success Response (200)**:
+```json
+[
+  {
+    "id": 1,
+    "key": "abc123",
+    "target_url": "https://example.com",
+    "expires_at": "2025-11-17T10:00:00Z",
+    "owner_id": 1,
+    "created_at": "2025-11-10T10:00:00Z",
+    "updated_at": "2025-11-10T10:00:00Z"
+  }
+]
+```
+
+**Response Schema**:
+- Array of reurl objects:
+  - `id` (uint): Reurl ID
+  - `key` (string): Short key for redirect
+  - `target_url` (string): Destination URL
+  - `expires_at` (string, nullable): Expiration timestamp (ISO 8601)
+  - `owner_id` (uint): Owner user ID
+  - `created_at` (string): Creation timestamp
+  - `updated_at` (string): Last update timestamp
+
+**Error Responses**:
+- `401 Unauthorized`: Missing or invalid authentication
+  ```json
+  {
+    "error": "Unauthorized"
+  }
+  ```
+
+---
+
+### POST /reurl
+**Description**: Create a new reurl with auto-generated key
+
+**Request Body**:
+```json
+{
+  "target_url": "https://example.com",
+  "expires_in": "7d",
+  "key": "123"
+}
+```
+
+**Request Body Schema**:
+- `target_url` (string, required): The URL to redirect to (must be valid URL)
+- `expires_in` (string, optional): Expiration duration. Allowed values: "1h", "12h", "1d", "7d", "30d". Defaults to "7d"
+- `key` (string, optional): Everyone including who not authrized can access the reurl record by a key. The server will generate a key if not found in request body.
+
+**Headers**:
+- `Cookie`: auth_token (required) - Authentication cookie
+
+**Success Response (201)**:
+```json
+{
+  "id": 1,
+  "key": "abc123",
+  "target_url": "https://example.com",
+  "expires_at": "2025-11-17T10:00:00Z",
+  "owner_id": 1,
+  "created_at": "2025-11-10T10:00:00Z",
+  "updated_at": "2025-11-10T10:00:00Z"
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Invalid input data
+  ```json
+  {
+    "error": "Key: 'CreateReurlRequest.TargetURL' Error:Field validation for 'TargetURL' failed on the 'url' tag"
+  }
+  ```
+- `400 Bad Request`: Invalid expires_in value
+  ```json
+  {
+    "error": "Invalid expires_in value"
+  }
+  ```
+- `401 Unauthorized`: Missing or invalid authentication
+  ```json
+  {
+    "error": "Unauthorized"
+  }
+  ```
+- `500 Internal Server Error`: Failed to generate key or create reurl
+  ```json
+  {
+    "error": "Failed to create reurl"
+  }
+  ```
+
+---
+
+### GET /reurl/:id
+**Description**: Get a specific reurl by ID. Users can only access their own reurls, admins can access any.
+
+**Path Parameters**:
+- `id` (uint, required): Reurl ID
+
+**Headers**:
+- `Cookie`: auth_token (required) - Authentication cookie
+
+**Success Response (200)**:
+```json
+{
+  "id": 1,
+  "key": "abc123",
+  "target_url": "https://example.com",
+  "expires_at": "2025-11-17T10:00:00Z",
+  "owner_id": 1,
+  "created_at": "2025-11-10T10:00:00Z",
+  "updated_at": "2025-11-10T10:00:00Z"
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized`: Missing or invalid authentication
+  ```json
+  {
+    "error": "Unauthorized"
+  }
+  ```
+- `403 Forbidden`: Attempting to access another user's reurl (non-admin)
+  ```json
+  {
+    "error": "Forbidden"
+  }
+  ```
+- `404 Not Found`: Reurl not found
+  ```json
+  {
+    "error": "Reurl not found"
+  }
+  ```
+
+---
+
+### PATCH /reurl/:id
+**Description**: Update a reurl. Users can only update their own reurls, admins can update any.
+
+**Path Parameters**:
+- `id` (uint, required): Reurl ID
+
+**Request Body**:
+```json
+{
+  "target_url": "https://new-example.com",
+  "expires_in": "1d",
+  "key": "new"
+}
+```
+
+**Request Body Schema**:
+- `target_url` (string, optional): New target URL (must be valid URL if provided)
+- `expires_in` (string, optional): New expiration duration. Allowed values: "1h", "12h", "1d", "7d", "30d"
+- `key` (string, optional): Everyone including who not authrized can access the reurl record by a key.
+
+**Headers**:
+- `Cookie`: auth_token (required) - Authentication cookie
+
+**Success Response (200)**:
+```json
+{
+  "id": 1,
+  "key": "abc123",
+  "target_url": "https://new-example.com",
+  "expires_at": "2025-11-11T10:00:00Z",
+  "owner_id": 1,
+  "created_at": "2025-11-10T10:00:00Z",
+  "updated_at": "2025-11-10T10:00:00Z"
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Invalid input data
+  ```json
+  {
+    "error": "Invalid expires_in value"
+  }
+  ```
+- `401 Unauthorized`: Missing or invalid authentication
+  ```json
+  {
+    "error": "Unauthorized"
+  }
+  ```
+- `403 Forbidden`: Attempting to update another user's reurl (non-admin)
+  ```json
+  {
+    "error": "Forbidden"
+  }
+  ```
+- `404 Not Found`: Reurl not found
+  ```json
+  {
+    "error": "Reurl not found"
+  }
+  ```
+- `500 Internal Server Error`: Failed to update reurl
+  ```json
+  {
+    "error": "Failed to update reurl"
+  }
+  ```
+
+---
+
+### DELETE /reurl/:id
+**Description**: Delete a reurl. Users can only delete their own reurls, admins can delete any.
+
+**Path Parameters**:
+- `id` (uint, required): Reurl ID
+
+**Headers**:
+- `Cookie`: auth_token (required) - Authentication cookie
+
+**Success Response (200)**:
+```json
+{
+  "message": "Reurl deleted successfully"
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized`: Missing or invalid authentication
+  ```json
+  {
+    "error": "Unauthorized"
+  }
+  ```
+- `403 Forbidden`: Attempting to delete another user's reurl (non-admin)
+  ```json
+  {
+    "error": "Forbidden"
+  }
+  ```
+- `404 Not Found`: Reurl not found
+  ```json
+  {
+    "error": "Reurl not found"
+  }
+  ```
+- `500 Internal Server Error`: Failed to delete reurl
+  ```json
+  {
+    "error": "Failed to delete reurl"
+  }
+  ```
+
+---
+
+### GET /reurl/redirect/:key
+**Description**: Redirect to the target URL using the short key. This endpoint is public and does not require authentication.
+
+**Path Parameters**:
+- `key` (string, required): Short key for the reurl
+
+**Success Response (302)**:
+- Redirects to the target URL with 302 Found status
+
+**Error Responses**:
+- `404 Not Found`: Reurl not found or expired
+  ```json
+  {
+    "error": "Reurl not found or expired"
+  }
+  ```
+
+**Example**:
+```bash
+GET /reurl/redirect/abc123
+# Redirects to https://example.com
+```
+
+---
+
+## Reurl Notes
+
+- Expired reurls are not accessible and will return 404 on redirect
+- Users can only manage their own reurls unless they have admin role
+- The redirect endpoint is public and can be shared freely
+- Expiration times are calculated from creation/update time

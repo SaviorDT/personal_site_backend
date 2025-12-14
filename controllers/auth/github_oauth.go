@@ -104,7 +104,7 @@ func GitHubLoginCallback(c *gin.Context, db *gorm.DB) {
 	}
 
 	// Generate our JWT token and set cookie
-	jwtToken, err := GenerateToken(schemas.TokenPayload{UserID: user.ID, Role: string(user.Role), Nickname: user.Nickname}, user.ID)
+	jwtToken, err := GenerateTokenManual(schemas.TokenPayload{UserID: user.ID, Role: string(user.Role), Nickname: user.Nickname}, user.ID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to generate token", "details": err.Error()})
 		return

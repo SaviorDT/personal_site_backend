@@ -17,7 +17,7 @@ var getSecretKey = func() ([]byte, error) {
 	return key, nil
 }
 
-func GenerateToken(payload schemas.TokenPayload, id uint) (string, error) {
+func GenerateTokenManual(payload schemas.TokenPayload, id uint) (string, error) {
 	claims := schemas.NewTokenClaims(id)
 	claims.Payload = payload
 

@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	authController "personal_site/controllers/auth"
 
 	"github.com/gin-gonic/gin"
@@ -10,15 +11,19 @@ import (
 
 func AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token, err := c.Cookie("auth_token")
+		token, err := c.Cookie("auth_token_v2")
 		if err != nil || token == "" {
+			fmt.Println("[Auth Debug] No cookie found:", err)
 			c.JSON(401, gin.H{"error": "Authorization cookie is required"})
 			c.Abort()
 			return
 		}
 
+		fmt.Println("[Auth Debug] Cookie found:", token)
+
 		validToken, err := authController.ValidateToken(token)
 		if err != nil || !validToken.Valid {
+			fmt.Println("[Auth Debug] Token invalid:", err)
 			c.JSON(401, gin.H{"error": "Invalid or expired token", "details": err.Error()})
 			c.Abort()
 			return
@@ -26,6 +31,7 @@ func AuthRequired() gin.HandlerFunc {
 
 		claims, ok := validToken.Claims.(*schemas.TokenClaims)
 		if !ok {
+			fmt.Println("[Auth Debug] Invalid claims")
 			c.JSON(401, gin.H{"error": "Invalid token claims"})
 			c.Abort()
 			return
@@ -34,6 +40,7 @@ func AuthRequired() gin.HandlerFunc {
 		user := (&claims.Payload).ExtractUser()
 
 		c.Set("user", user)
+		c.Set("user_id", user.ID)
 
 		c.Next()
 	}
@@ -41,7 +48,7 @@ func AuthRequired() gin.HandlerFunc {
 
 func AuthOptional() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token, err := c.Cookie("auth_token")
+		token, err := c.Cookie("auth_token_v2")
 
 		if err != nil || token == "" {
 			// No authentication, continue without setting user
@@ -52,6 +59,7 @@ func AuthOptional() gin.HandlerFunc {
 			}
 
 			c.Set("user", anonymousUser)
+			// c.Set("user_id", 0) // Optional: might not be needed if endpoints check 'user'
 			c.Next()
 			return
 		}
@@ -74,6 +82,7 @@ func AuthOptional() gin.HandlerFunc {
 
 		user := (&claims.Payload).ExtractUser()
 		c.Set("user", user)
+		c.Set("user_id", user.ID)
 
 		c.Next()
 	}

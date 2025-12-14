@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"strings"
 
 	"personal_site/config"
@@ -86,7 +87,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 	}
 
 	// login successful
-	token, err := GenerateToken(schemas.TokenPayload{
+	token, err := GenerateTokenManual(schemas.TokenPayload{
 		UserID:   user.ID,
 		Role:     string(user.Role),
 		Nickname: user.Nickname,
@@ -95,6 +96,8 @@ func Login(c *gin.Context, db *gorm.DB) {
 		c.JSON(500, gin.H{"error": "Failed to generate token", "details": err.Error()})
 		return
 	}
+
+	fmt.Println("[Login Debug] Generated Token:", token) // DEBUG LOG
 
 	setAuthCookie(c, token)
 
@@ -204,25 +207,31 @@ func setAuthCookie(c *gin.Context, token string) {
 		return
 	}
 
+	// Determine if secure cookie should be used (e.g., based on environment or request scheme)
+	// For simplicity, assuming HTTPS in production and HTTP in development
+	secure := c.Request.URL.Scheme == "https" || c.Request.Header.Get("X-Forwarded-Proto") == "https"
+
+	fmt.Println("[Cookie Debug] Setting Cookie:", token) // DEBUG LOG
+
 	c.SetCookie(
-		"auth_token",       // cookie name
+		"auth_token_v2",    // cookie name
 		token,              // cookie value
 		int(exp.Seconds()), // max age in seconds
 		"/",                // path
 		"",                 // domain (empty means current domain)
-		true,               // secure (set to true in production with HTTPS)
+		secure,             // secure (動態設定：開發環境 false，生產環境 true)
 		true,               // httpOnly
 	)
 }
 
 func removeAuthCookie(c *gin.Context) {
 	c.SetCookie(
-		"auth_token", // cookie name
-		"",           // empty value
-		-1,           // max age -1 (delete immediately)
-		"/",          // path
-		"",           // domain (empty means current domain)
-		true,         // secure (set to true in production with HTTPS)
-		true,         // httpOnly
+		"auth_token_v2", // cookie name
+		"",              // empty value
+		-1,              // max age -1 (delete immediately)
+		"/",             // path
+		"",              // domain (empty means current domain)
+		true,            // secure (set to true in production with HTTPS)
+		true,            // httpOnly
 	)
 }

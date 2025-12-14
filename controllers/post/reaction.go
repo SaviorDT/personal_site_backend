@@ -25,7 +25,8 @@ func AddReactionToPost(c *gin.Context, db *gorm.DB) {
 		return
 	}
 	var post models.Post
-	if err := db.First(&post, postID).Error; err != nil {
+	postPtr, err := models.FindPostByIDOrSlug(db, postID)
+	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 			return
@@ -33,6 +34,7 @@ func AddReactionToPost(c *gin.Context, db *gorm.DB) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch post"})
 		return
 	}
+	post = *postPtr
 	var existing models.Reaction
 	if err := db.Where("user_id = ? AND post_id = ?", userID.(uint), post.ID).First(&existing).Error; err == nil {
 		if existing.Type == req.Type {
@@ -98,6 +100,12 @@ func AddReactionToComment(c *gin.Context, db *gorm.DB) {
 func GetPostReactionsSummary(c *gin.Context, db *gorm.DB) {
 	postID := c.Param("id")
 
+	post, err := models.FindPostByIDOrSlug(db, postID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+		return
+	}
+
 	type ReactionCount struct {
 		Type  models.ReactionType `json:"type"`
 		Count int64               `json:"count"`
@@ -106,7 +114,7 @@ func GetPostReactionsSummary(c *gin.Context, db *gorm.DB) {
 	var reactions []ReactionCount
 	if err := db.Model(&models.Reaction{}).
 		Select("type, COUNT(*) as count").
-		Where("post_id = ?", postID).
+		Where("post_id = ?", post.ID).
 		Group("type").
 		Find(&reactions).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reactions"})
@@ -117,7 +125,7 @@ func GetPostReactionsSummary(c *gin.Context, db *gorm.DB) {
 	var userReaction *models.Reaction
 	if userID, exists := c.Get("user_id"); exists {
 		var reaction models.Reaction
-		if err := db.Where("user_id = ? AND post_id = ?", userID.(uint), postID).First(&reaction).Error; err == nil {
+		if err := db.Where("user_id = ? AND post_id = ?", userID.(uint), post.ID).First(&reaction).Error; err == nil {
 			userReaction = &reaction
 		}
 	}
@@ -161,4 +169,3 @@ func GetCommentReactionsSummary(c *gin.Context, db *gorm.DB) {
 		"user_reaction": userReaction,
 	})
 }
- 

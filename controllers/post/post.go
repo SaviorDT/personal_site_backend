@@ -5,7 +5,7 @@ import (
 	"personal_site/models"
 	"strconv"
 	"time"
-
+    
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -123,9 +123,7 @@ func GetPost(c *gin.Context, db *gorm.DB) {
 	postID := c.Param("id")
 	var post models.Post
 	query := db.Preload("Author").Preload("Tags").Preload("Comments", "is_deleted = ?", false).Preload("Comments.Author").Preload("Comments.Reactions").Preload("Reactions").Preload("Reactions.User")
-	// Use FindPostByIDOrSlug to support both ID and Slug
-	postPtr, err := models.FindPostByIDOrSlug(query, postID)
-	if err != nil {
+	if err := query.First(&post, postID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 			return
@@ -133,8 +131,6 @@ func GetPost(c *gin.Context, db *gorm.DB) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch post"})
 		return
 	}
-	post = *postPtr
-
 	userID, exists := c.Get("user_id")
 	if post.Visibility == models.PostVisibilityPrivate {
 		if !exists || userID.(uint) != post.AuthorID {
@@ -250,4 +246,5 @@ func DeletePost(c *gin.Context, db *gorm.DB) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Post deleted successfully"})
-}
+	}
+ 

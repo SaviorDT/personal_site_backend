@@ -20,20 +20,20 @@ const (
 // Reaction model
 type Reaction struct {
 	gorm.Model
-	UserID    uint         `gorm:"not null;index:idx_reaction_unique,unique" json:"user_id"`
-	User      User         `gorm:"foreignKey:UserID" json:"user"`
-	PostID    *uint        `gorm:"index:idx_reaction_unique,unique" json:"post_id"`
-	Post      *Post        `gorm:"foreignKey:PostID" json:"post"`
-	CommentID *uint        `gorm:"index:idx_reaction_unique,unique" json:"comment_id"`
-	Comment   *Comment     `gorm:"foreignKey:CommentID" json:"comment"`
-	Type      ReactionType `gorm:"size:20;not null" json:"type"`
+	UserID    uint         `gorm:"not null;index:idx_reaction_unique,unique"`
+	User      User         `gorm:"foreignKey:UserID"`
+	PostID    *uint        `gorm:"index:idx_reaction_unique,unique"`
+	Post      *Post        `gorm:"foreignKey:PostID"`
+	CommentID *uint        `gorm:"index:idx_reaction_unique,unique"`
+	Comment   *Comment     `gorm:"foreignKey:CommentID"`
+	Type      ReactionType `gorm:"size:20;not null"`
 }
 
 func (Reaction) TableName() string { return "reactions" }
 
 func (r *Reaction) BeforeSave(tx *gorm.DB) error {
-	if (r.PostID == nil && r.CommentID == nil) || (r.PostID != nil && r.CommentID != nil) {
-		return gorm.ErrInvalidData
-	}
-	return nil
+    if (r.PostID == nil && r.CommentID == nil) || (r.PostID != nil && r.CommentID != nil) {
+        return gorm.ErrInvalidData
+    }
+    return nil
 }

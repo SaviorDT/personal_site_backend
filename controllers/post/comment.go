@@ -74,7 +74,7 @@ func GetComments(c *gin.Context, db *gorm.DB) {
 	if err := db.Where("post_id = ? AND is_deleted = ?", post.ID, false).
 		Preload("Author").
 		Preload("Reactions").
-		Order("created_at ASC"). // Order by time ascending usually makes more sense for flat conversation flow, but DESC is fine if tree sorts it. Keeping DESC for now or matching expectation. Usually comments are old->new. Let's stick to DESC if that was default, or switch to ASC? Default was DESC. Let's keep DESC.
+		Order("created_at DESC"). // Keep DESC
 		Find(&comments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch comments"})
 		return

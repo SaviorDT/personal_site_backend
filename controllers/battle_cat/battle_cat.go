@@ -48,8 +48,8 @@ func FilterLevels(c *gin.Context, db *gorm.DB) {
 	permuteFindLevels1(req.Enemies, &collections, allPossibleLevels)
 
 	for i := range collections {
-		sort.Slice(collections[i].Levels, func(a, b int) bool {
-			return !LongerThan(collections[i].Levels[a].Time, collections[i].Levels[b].Time)
+		sort.SliceStable(collections[i].Levels, func(a, b int) bool {
+			return LongerThan(collections[i].Levels[b].Time, collections[i].Levels[a].Time, 30)
 		})
 	}
 
@@ -137,13 +137,18 @@ func calMaxTime(levelEnemies string, targetEnemies []string) string {
 }
 
 func longerTime(time1 string, time2 string) string {
-	if LongerThan(time1, time2) {
+	if LongerThan(time1, time2, -1) {
 		return time1
 	}
 	return time2
 }
 
-func LongerThan(time1 string, time2 string) bool {
+func LongerThan(time1 string, time2 string, ignoreSeconds int) bool {
+	if (ignoreSeconds >= 0) {
+		time1 = longerTime(time1, fmt.Sprintf("%ds", ignoreSeconds))
+		time2 = longerTime(time2, fmt.Sprintf("%ds", ignoreSeconds))
+	}
+
 	var val1, val2 int
 	var format1, format2 byte
 	fmt.Sscanf(time1[:len(time1)-1], "%d", &val1)
@@ -166,8 +171,8 @@ func LongerThan(time1 string, time2 string) bool {
 	}
 
 	// 10% longer than 20%
-	if val1 > val2 {
-		return false
+	if val1 < val2 {
+		return true
 	}
-	return true
+	return false
 }
